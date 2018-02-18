@@ -1,0 +1,2 @@
+# inim
+Interactive Nim shell
