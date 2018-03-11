@@ -12,8 +12,8 @@ let
     compileCmd = "nim compile --run --verbosity=0 --hints=off " & bufferSource
 
 var
-    currentOutputLine = 0  # last shown buffer's stdout line
-    validCode = ""  # buffer without exceptions
+    currentOutputLine = 0  # Last shown buffer's stdout line
+    validCode = ""  # Buffer without exceptions
     indentationLevel = 0
     buffer: File
 
@@ -32,21 +32,21 @@ proc getNimPath(): string =
     result = output
 
 proc welcomeScreen() =
-    echo "INim ", INimVersion
-    echo getNimVersion()
-    echo getNimPath()
+    stdout.writeLine "INim ", INimVersion
+    stdout.writeLine getNimVersion()
+    stdout.write getNimPath()
 
 proc cleanExit() {.noconv.} =
     buffer.close()
-    removeFile(bufferFilename)  # binary
-    removeFile(bufferSource)  # source code
+    removeFile(bufferFilename)  # Binary
+    removeFile(bufferSource)  # Source-code (temp)
     quit 0
 
 proc init() =
     setControlCHook(cleanExit)
     buffer = open(bufferSource, fmWrite)
     buffer.writeLine(bufferDefaultImports)
-    discard execCmdEx(compileCmd)  # first dummy compilation so next is fast
+    discard execCmdEx(compileCmd)  # First dummy compilation so next one is faster
 
 proc echoInputSymbol() =
     stdout.setForegroundColor(fgCyan)
@@ -55,14 +55,21 @@ proc echoInputSymbol() =
     else:
         stdout.write("... ")
     stdout.resetAttributes()
-    # auto-indentation
+    # Auto-indentation
     stdout.write(indentationSpaces.repeat(indentationLevel))
+
+proc showError(output: string) =
+    ## Print only error message, without file and line number
+    ## Output is "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
+    ## Echo only "Error: undeclared identifier: 'foo'"
+    let pos = output.find(")") + 2
+    echo output[pos..^1].strip
 
 proc runForever() =
     while true:
         echoInputSymbol()
         var myline = readLine(stdin)
-        # empty line, do nothing
+        # Empty line, do nothing
         if myline.strip == "":
             if indentationLevel > 0:
                 indentationLevel -= 1
@@ -70,36 +77,36 @@ proc runForever() =
                 buffer.write("\n")
                 continue
         else:
-            # check for indentation
+            # Check for indentation
             if strip(myline)[^1] in ['=', ':']:
-                # is a multiline statement
+                # Is a multiline statement
                 indentationLevel += 1
                 continue
             if indentationLevel != 0:
                 continue
-            # shortcut to print value and type
+            # Shortcut to print value and type
             if len(myline.split) == 1:
-                myline = "echo " & myline & ", " & "\" :\"" & ", " & myline & ".type.name"
-        # write your line to buffer source code
+                myline = "echo " & myline & ", " & "\" <\"" & ", " & myline & ".type.name"
+        # Write your line to buffer source code
         buffer.writeLine(indentationSpaces.repeat(indentationLevel) & myline)
         buffer.flushFile()
-        # compile buffer
+        # Compile buffer
         let (output, status) = execCmdEx(compileCmd)
-        # error happened in your single statement
+        # Error happened in your single statement
         if status != 0:
             indentationLevel = 0
-            echo output  # show error
-            # write back valid code
+            showError(output)
+            # Write back valid code
             buffer.close()
             buffer = open(bufferSource, fmWrite)
             buffer.write(validCode)
             buffer.flushFile()
             continue
-        # valid statement
+        # Valid statement
         else:
             validCode &= myline & "\n"
             let lines = output.splitLines
-            # print only output you haven't seen
+            # Print only output you haven't seen
             for line in lines[currentOutputLine..^1]:
                 if line.strip != "":
                     echo line
