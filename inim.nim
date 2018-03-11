@@ -2,6 +2,7 @@ import os, osproc, strutils, terminal, times, typetraits
 
 const
     INimVersion = "0.1"
+    indentationTrigger = ['=', ':']  # on last char
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"
 
@@ -73,26 +74,21 @@ proc runForever() =
         if myline.strip == "":
             if indentationLevel > 0:
                 indentationLevel -= 1
-            if indentationLevel == 0:
+            elif indentationLevel == 0:
                 buffer.write("\n")
                 continue
-        else:
-            # Check for indentation
-            if strip(myline)[^1] in ['=', ':']:
-                # Is a multiline statement
-                indentationLevel += 1
-                continue
-            if indentationLevel != 0:
-                continue
-            # Shortcut to print value and type
-            if len(myline.split) == 1:
-                myline = "echo " & myline & ", " & "\" <\"" & ", " & myline & ".type.name"
         # Write your line to buffer source code
         buffer.writeLine(indentationSpaces.repeat(indentationLevel) & myline)
         buffer.flushFile()
+        # Check for indentation
+        if myline.len > 0 and strip(myline)[^1] in indentationTrigger:
+            indentationLevel += 1
+        # Don't run yet if still on indentation
+        if indentationLevel != 0:
+            continue
         # Compile buffer
         let (output, status) = execCmdEx(compileCmd)
-        # Error happened in your single statement
+        # Compilation error with your statement
         if status != 0:
             indentationLevel = 0
             showError(output)
