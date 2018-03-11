@@ -67,6 +67,12 @@ proc showError(output: string) =
     let pos = output.find(")") + 2
     echo output[pos..^1].strip
 
+proc endsWithIndentation(line: string): bool =
+    if line.len > 0:
+        for trigger in indentationTriggers:
+            if line.strip().endsWith(trigger):
+                result = true
+
 proc runForever() =
     while true:
         echoInputSymbol()
@@ -81,16 +87,13 @@ proc runForever() =
         buffer.writeLine(indentationSpaces.repeat(indentationLevel) & myline)
         buffer.flushFile()
         # Check for indentation
-        if myline.len > 0:
-            for trigger in indentationTriggers:
-                if myline.strip().endsWith(trigger):
-                    indentationLevel += 1
-                    break
+        if myline.endsWithIndentation:
+            indentationLevel += 1
         # Don't run yet if still on indentation
         if indentationLevel != 0:
             # Skip indentation for first line
-            if len(tempIndentCode) == 0:
-                tempIndentCode &= myline & "\n"
+            if myline.endsWithIndentation:
+                tempIndentCode &= indentationSpaces.repeat(indentationLevel-1) & myline & "\n"
             else:
                 tempIndentCode &= indentationSpaces.repeat(indentationLevel) & myline & "\n"
             continue
