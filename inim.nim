@@ -1,4 +1,4 @@
-import os, osproc, strutils, times, typetraits
+import os, osproc, strutils, terminal, times, typetraits
 
 const
     INimVersion = "0.1"
@@ -49,11 +49,13 @@ proc init() =
     discard execCmdEx(compileCmd)  # first dummy compilation so next is fast
 
 proc echoInputSymbol() =
+    stdout.setForegroundColor(fgCyan)
     if indentationLevel == 0:
         stdout.write(">>> ")
     else:
         stdout.write("... ")
-    # automatic indentation
+    stdout.resetAttributes()
+    # auto-indentation
     stdout.write(indentationSpaces.repeat(indentationLevel))
 
 proc runForever() =
