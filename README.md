@@ -4,7 +4,7 @@
 ![alt text](https://github.com/AndreiRegiani/INim/blob/master/demo.gif?raw=true)
 
 ## Features
-* Auto-indentation (`if`, `for`, `proc`, ...)
+* Auto-indentation (`if`, `for`, `proc`, `var`, `let`, ...)
 
 ## Contributing
 Pull requests or suggestions are welcome.

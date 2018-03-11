@@ -2,7 +2,7 @@ import os, osproc, strutils, terminal, times, typetraits
 
 const
     INimVersion = "0.1"
-    indentationTrigger = ['=', ':']  # on last char
+    indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"
 
@@ -81,25 +81,18 @@ proc runForever() =
         buffer.writeLine(indentationSpaces.repeat(indentationLevel) & myline)
         buffer.flushFile()
         # Check for indentation
-        if myline.len > 0 and strip(myline)[^1] in indentationTrigger:
-            indentationLevel += 1
+        if myline.len > 0:
+            for trigger in indentationTriggers:
+                if myline.strip().endsWith(trigger):
+                    indentationLevel += 1
+                    break
         # Don't run yet if still on indentation
         if indentationLevel != 0:
             continue
         # Compile buffer
         let (output, status) = execCmdEx(compileCmd)
-        # Compilation error with your statement
-        if status != 0:
-            indentationLevel = 0
-            showError(output)
-            # Write back valid code
-            buffer.close()
-            buffer = open(bufferSource, fmWrite)
-            buffer.write(validCode)
-            buffer.flushFile()
-            continue
-        # Valid statement
-        else:
+        # Valid statement compilation
+        if status == 0:
             validCode &= myline & "\n"
             let lines = output.splitLines
             # Print only output you haven't seen
@@ -107,6 +100,17 @@ proc runForever() =
                 if line.strip != "":
                     echo line
             currentOutputLine = len(lines)-1
+        # Compilation error with your statement
+        else:
+            indentationLevel = 0
+            showError(output)
+            # Write back valid code
+            buffer.close()
+            buffer = open(bufferSource, fmWrite)
+            buffer.writeLine(bufferDefaultImports)
+            buffer.write(validCode)
+            buffer.flushFile()
+        
 
 when isMainModule:
     init()
