@@ -14,7 +14,8 @@ let
 
 var
     currentOutputLine = 0  # Last shown buffer's stdout line
-    validCode = ""  # Buffer without exceptions
+    validCode = ""  # All statements compiled succesfully
+    tempIndentCode = ""  # Later append to `validCode` if it compiles well
     indentationLevel = 0
     buffer: File
 
@@ -75,7 +76,6 @@ proc runForever() =
             if indentationLevel > 0:
                 indentationLevel -= 1
             elif indentationLevel == 0:
-                buffer.write("\n")
                 continue
         # Write your line to buffer source code
         buffer.writeLine(indentationSpaces.repeat(indentationLevel) & myline)
@@ -88,12 +88,20 @@ proc runForever() =
                     break
         # Don't run yet if still on indentation
         if indentationLevel != 0:
+            # Skip indentation for first line
+            if len(tempIndentCode) == 0:
+                tempIndentCode &= myline & "\n"
+            else:
+                tempIndentCode &= indentationSpaces.repeat(indentationLevel) & myline & "\n"
             continue
         # Compile buffer
         let (output, status) = execCmdEx(compileCmd)
         # Valid statement compilation
         if status == 0:
-            validCode &= myline & "\n"
+            if len(tempIndentCode) > 0:
+                validCode &= tempIndentCode
+            else:
+                validCode &= myline & "\n"
             let lines = output.splitLines
             # Print only output you haven't seen
             for line in lines[currentOutputLine..^1]:
@@ -110,6 +118,8 @@ proc runForever() =
             buffer.writeLine(bufferDefaultImports)
             buffer.write(validCode)
             buffer.flushFile()
+        # Clean up
+        tempIndentCode = ""
         
 
 when isMainModule:
