@@ -1,10 +1,10 @@
-import os, osproc, strutils, terminal, times, typetraits
+import os, osproc, strutils, terminal, times
 
 const
     INimVersion = "0.1"
     indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
-    bufferDefaultImports = "import typetraits"
+    bufferDefaultImports = "import typetraits"  # shortcut to display type and value
 
 let
     randomSuffix = epochTime().int
@@ -13,23 +13,23 @@ let
     compileCmd = "nim compile --run --verbosity=0 --hints=off " & bufferSource
 
 var
-    currentOutputLine = 0  # Last shown buffer's stdout line
+    currentOutputLine = 0  # Last line shown from buffer's stdout
     validCode = ""  # All statements compiled succesfully
-    tempIndentCode = ""  # Later append to `validCode` if it compiles well
-    indentationLevel = 0
+    tempIndentCode = ""  # Later append to `validCode` if whole block compiles well
+    indentationLevel = 0  # current
     buffer: File
 
 proc getNimVersion(): string =
     let (output, status) = execCmdEx("nim --version")
     if status != 0:
-        echo "Nim compiler not found in your path"
+        echo "inim: Program \"nim\" not found in PATH"
         quit 1
     result = output.splitLines()[0]
 
 proc getNimPath(): string =
     let (output, status) = execCmdEx("which nim")
     if status != 0:
-        echo "Nim compiler not found in your path"
+        echo "inim: Program \"nim\" not found in PATH"
         quit 1
     result = output
 
@@ -41,7 +41,7 @@ proc welcomeScreen() =
 proc cleanExit() {.noconv.} =
     buffer.close()
     removeFile(bufferFilename)  # Binary
-    removeFile(bufferSource)  # Source-code (temp)
+    removeFile(bufferSource)  # Source
     quit 0
 
 proc init() =
@@ -62,8 +62,8 @@ proc echoInputSymbol() =
 
 proc showError(output: string) =
     ## Print only error message, without file and line number
-    ## Output is "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
-    ## Echo only "Error: undeclared identifier: 'foo'"
+    ## e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
+    ## echo "Error: undeclared identifier: 'foo'"
     let pos = output.find(")") + 2
     echo output[pos..^1].strip
 
@@ -77,7 +77,7 @@ proc runForever() =
     while true:
         echoInputSymbol()
         var myline = readLine(stdin)
-        # Empty line, do nothing
+        # Empty line: leave indentation level otherwise do nothing
         if myline.strip == "":
             if indentationLevel > 0:
                 indentationLevel -= 1
