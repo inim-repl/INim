@@ -1,7 +1,7 @@
 import os, osproc, strutils, terminal, times
 
 const
-    INimVersion = "0.1"
+    INimVersion = "0.1.0"
     indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
@@ -16,7 +16,7 @@ var
     currentOutputLine = 0  # Last line shown from buffer's stdout
     validCode = ""  # All statements compiled succesfully
     tempIndentCode = ""  # Later append to `validCode` if whole block compiles well
-    indentationLevel = 0  # current
+    indentationLevel = 0  # Current
     buffer: File
 
 proc getNimVersion(): string =
@@ -135,7 +135,6 @@ proc runForever() =
 
         # Clean up
         tempIndentCode = ""
-        
 
 when isMainModule:
     init()
