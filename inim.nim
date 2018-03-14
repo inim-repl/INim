@@ -4,7 +4,7 @@ const
     INimVersion = "0.1"
     indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
-    bufferDefaultImports = "import typetraits"  # shortcut to display type and value
+    bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
 
 let
     randomSuffix = epochTime().int
