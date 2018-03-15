@@ -1,5 +1,5 @@
 # INim: Interactive Nim Shell
-**Nim playground for the terminal.**
+`$ nimble install inim`
 
 ![alt text](https://github.com/AndreiRegiani/INim/blob/master/readme.gif?raw=true)
 
