@@ -79,7 +79,7 @@ proc runForever() =
         var myline = readLine(stdin).strip
 
         # Special commands
-        if myline in ["quit", "quit()", "q"]:
+        if myline in ["exit", "quit()"]:
             quit(0)
 
         # Empty line: leave indentation level otherwise do nothing
