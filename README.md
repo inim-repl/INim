@@ -7,6 +7,7 @@
 ## Features
 * Auto-indent (`if`, `for`, `proc`, `var`, ...)
 * Uses current `nim` compiler in PATH
+* Runs on Linux, macOS and Windows
 
 ## Contributing
 Pull requests and suggestions are welcome.
