@@ -19,7 +19,7 @@ var
     indentationLevel = 0  # Current
     buffer: File
 
-proc getNimVersion(): string =
+proc getNimVersion*(): string =
     let (output, status) = execCmdEx("nim --version")
     if status != 0:
         echo "inim: Program \"nim\" not found in PATH"
@@ -69,7 +69,7 @@ proc showError(output: string) =
     let pos = output.find(")") + 2
     echo output[pos..^1].strip
 
-proc endsWithIndentation(line: string): bool =
+proc triggerIndentation*(line: string): bool =
     if line.len > 0:
         for trigger in indentationTriggers:
             if line.strip().endsWith(trigger):
@@ -96,13 +96,13 @@ proc runForever() =
         buffer.flushFile()
 
         # Check for indentation
-        if myline.endsWithIndentation:
+        if myline.triggerIndentation:
             indentationLevel += 1
 
         # Don't run yet if still on indentation
         if indentationLevel != 0:
             # Skip indentation for first line
-            if myline.endsWithIndentation:
+            if myline.triggerIndentation:
                 tempIndentCode &= indentationSpaces.repeat(indentationLevel-1) & myline & "\n"
             else:
                 tempIndentCode &= indentationSpaces.repeat(indentationLevel) & myline & "\n"
