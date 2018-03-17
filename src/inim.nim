@@ -80,7 +80,7 @@ proc runForever() =
 
         # Special commands
         if myline in ["exit", "quit()"]:
-            quit(0)
+            cleanExit()
 
         # Empty line: leave indentation level otherwise do nothing
         if myline == "":
