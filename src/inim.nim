@@ -1,7 +1,7 @@
 import os, osproc, strutils, terminal, times
 
 const
-    INimVersion = "0.1.0"
+    INimVersion = "0.1.1"
     indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
@@ -27,15 +27,17 @@ proc getNimVersion(): string =
     result = output.splitLines()[0]
 
 proc getNimPath(): string =
-    let (output, status) = execCmdEx("which nim")
-    if status != 0:
-        echo "inim: Program \"nim\" not found in PATH"
-        quit(1)
-    result = output
+    var which_cmd = "which nim"
+    when defined(Windows):
+        which_cmd = "where nim"
+    let (output, status) = execCmdEx(which_cmd)
+    if status == 0:
+        return " at " & output
+    return "\n"
 
 proc welcomeScreen() =
     stdout.writeLine "INim ", INimVersion
-    stdout.writeLine getNimVersion()
+    stdout.write getNimVersion()
     stdout.write getNimPath()
 
 proc cleanExit() {.noconv.} =
