@@ -5,9 +5,10 @@
 ![alt text](https://github.com/AndreiRegiani/INim/blob/master/readme.gif?raw=true)
 
 ## Features
-* Auto-indent (`if`, `for`, `proc`, `var`, ...)
-* Uses current `nim` compiler in PATH
 * Runs on Linux, macOS and Windows
+* Auto-indent (`if`, `for`, `proc`, `var`, ...)
+* Arrow keys support (command history and line navigation)
+* Uses current `nim` compiler in PATH
 
 ## Contributing
 Pull requests and suggestions are welcome.
