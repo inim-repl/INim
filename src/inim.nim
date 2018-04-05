@@ -1,7 +1,7 @@
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
-    INimVersion = "0.1.2"
+    INimVersion = "0.2.0"
     indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
