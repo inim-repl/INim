@@ -1,15 +1,14 @@
 import os, osproc, strutils, terminal, times
 
 const
-    INimVersion = "0.1.1"
+    INimVersion = "0.1.2"
     indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
 
 let
-    randomSuffix = epochTime().int
-    bufferFilename = "inim_" & $randomSuffix
-    bufferSource = bufferFilename & ".nim"
+    uniquePrefix = epochTime().int
+    bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
     compileCmd = "nim compile --run --verbosity=0 --hints=off " & bufferSource
 
 var
@@ -42,8 +41,9 @@ proc welcomeScreen() =
 
 proc cleanExit() {.noconv.} =
     buffer.close()
-    removeFile(bufferFilename)  # Binary
-    removeFile(bufferSource)  # Source
+    removeFile(bufferSource)  # Temp .nim
+    removeFile(bufferSource[0..^5])  # Temp binary, same filename just without ".nim"
+    removeDir(getTempDir() & "nimcache")
     quit(0)
 
 proc init() =
