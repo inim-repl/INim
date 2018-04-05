@@ -1,4 +1,4 @@
-import os, osproc, strutils, terminal, times
+import os, osproc, rdstdin, strutils, terminal, times
 
 const
     INimVersion = "0.1.2"
@@ -52,15 +52,13 @@ proc init() =
     buffer.writeLine(bufferDefaultImports)
     discard execCmdEx(compileCmd)  # First dummy compilation so next one is faster
 
-proc echoInputSymbol() =
-    stdout.setForegroundColor(fgCyan)
+proc getPromptSymbol(): string =
     if indentationLevel == 0:
-        stdout.write(">>> ")
+        result = ">>> "
     else:
-        stdout.write("... ")
-    stdout.resetAttributes()
-    # Auto-indentation
-    stdout.write(indentationSpaces.repeat(indentationLevel))
+        result =  "... "
+    # Auto-indentation (multi-level)
+    result &= indentationSpaces.repeat(indentationLevel)
 
 proc showError(output: string) =
     # Print only error message, without file and line number
@@ -77,8 +75,7 @@ proc triggerIndentation*(line: string): bool =
 
 proc runForever() =
     while true:
-        echoInputSymbol()
-        var myline = readLine(stdin).strip
+        let myline = readLineFromStdin(getPromptSymbol()).strip
 
         # Special commands
         if myline in ["exit", "quit()"]:
