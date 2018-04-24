@@ -1,8 +1,8 @@
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
-    INimVersion = "0.2.0"
-    indentationTriggers = ["=", ":", "var", "let", "const"]  # endsWith
+    INimVersion = "0.2.1"
+    indentationTriggers = ["=", ":", "var", "let", "const", "import"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
 
@@ -46,11 +46,40 @@ proc cleanExit() {.noconv.} =
     removeDir(getTempDir() & "nimcache")
     quit(0)
 
-proc init() =
+proc getFileData(path: string): string =
+    try:
+        result = path.readFile()
+    except:
+        result = nil
+
+proc showError(output: string) =
+    # Print only error message, without file and line number
+    # e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
+    # echo "Error: undeclared identifier: 'foo'"
+    let pos = output.find(")") + 2
+    echo output[pos..^1].strip
+
+proc init(content: string) =
     setControlCHook(cleanExit)
     buffer = open(bufferSource, fmWrite)
     buffer.writeLine(bufferDefaultImports)
-    discard execCmdEx(compileCmd)  # First dummy compilation so next one is faster
+    if content == nil:
+        discard execCmdEx(compileCmd) # First dummy compilation so next one is faster
+        return
+
+    buffer.writeLine(content)
+    buffer.flushFile()
+
+    let (output, status) = execCmdEx(compileCmd) # Makes sure the file exists ok
+    if status == 0:
+        for line in content.splitLines:
+            validCode &= line & "\n"
+        echo output
+        currentOutputLine = len(output.splitLines)-1
+    # Compilation error
+    else:
+        showError(output)
+        cleanExit()
 
 proc getPromptSymbol(): string =
     if indentationLevel == 0:
@@ -59,13 +88,6 @@ proc getPromptSymbol(): string =
         result =  "... "
     # Auto-indentation (multi-level)
     result &= indentationSpaces.repeat(indentationLevel)
-
-proc showError(output: string) =
-    # Print only error message, without file and line number
-    # e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
-    # echo "Error: undeclared identifier: 'foo'"
-    let pos = output.find(")") + 2
-    echo output[pos..^1].strip
 
 proc triggerIndentation*(line: string): bool =
     if line.len > 0:
@@ -136,6 +158,17 @@ proc runForever() =
         tempIndentCode = ""
 
 when isMainModule:
-    init()
-    welcomeScreen()
+    if paramCount() > 0:
+        let filePath = paramStr(paramCount())
+        if not filePath.fileExists:
+            echo "File ", filePath, " does not exists"
+            quit(1)
+        if not filePath.endsWith(".nim"):
+            echo filePath, " is not a valid Nim file"
+            quit(1)
+        let fileData = getFileData(filePath)
+        init(fileData)
+    else:
+        init(nil)
+        welcomeScreen()
     runForever()
