@@ -35,9 +35,12 @@ proc getNimPath(): string =
     return "\n"
 
 proc welcomeScreen() =
+    stdout.setForegroundColor(fgCyan)
     stdout.writeLine "INim ", INimVersion
     stdout.write getNimVersion()
     stdout.write getNimPath()
+    stdout.resetAttributes()
+    stdout.flushFile()
 
 proc cleanExit() {.noconv.} =
     buffer.close()
@@ -56,8 +59,11 @@ proc showError(output: string) =
     # Print only error message, without file and line number
     # e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
     # echo "Error: undeclared identifier: 'foo'"
+    stdout.setForegroundColor(fgRed, true)
     let pos = output.find(")") + 2
     echo output[pos..^1].strip
+    stdout.resetAttributes()
+    stdout.flushFile()
 
 proc init(preload: string = nil) =
     setControlCHook(cleanExit)
@@ -138,10 +144,13 @@ proc runForever() =
                 validCode &= myline & "\n"
             let lines = output.splitLines
             # Print only output you haven't seen
+            stdout.setForegroundColor(fgCyan, true)
             for line in lines[currentOutputLine..^1]:
                 if line.strip != "":
                     echo line
             currentOutputLine = len(lines)-1
+            stdout.resetAttributes()
+            stdout.flushFile()
 
         # Compilation error
         else:
