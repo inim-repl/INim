@@ -1,7 +1,7 @@
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
-    INimVersion = "0.2.1"
+    INimVersion = "0.2.2"
     indentationTriggers = ["=", ":", "var", "let", "const", "import"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
@@ -26,9 +26,9 @@ proc getNimVersion*(): string =
     result = output.splitLines()[0]
 
 proc getNimPath(): string =
-    var which_cmd = "which nim"
+    var which_cmd = "which nim"  # POSIX
     when defined(Windows):
-        which_cmd = "where nim"
+        which_cmd = "where nim"  # Windows
     let (output, status) = execCmdEx(which_cmd)
     if status == 0:
         return " at " & output
@@ -59,20 +59,20 @@ proc showError(output: string) =
     let pos = output.find(")") + 2
     echo output[pos..^1].strip
 
-proc init(content: string) =
+proc init(preload: string = nil) =
     setControlCHook(cleanExit)
+
     buffer = open(bufferSource, fmWrite)
     buffer.writeLine(bufferDefaultImports)
-    if content == nil:
-        discard execCmdEx(compileCmd) # First dummy compilation so next one is faster
+    if preload == nil:
+        discard execCmdEx(compileCmd)  # First dummy compilation so next one is faster
         return
 
-    buffer.writeLine(content)
+    buffer.writeLine(preload)
     buffer.flushFile()
-
-    let (output, status) = execCmdEx(compileCmd) # Makes sure the file exists ok
+    let (output, status) = execCmdEx(compileCmd)  # Check preloaded file compiles succesfully
     if status == 0:
-        for line in content.splitLines:
+        for line in preload.splitLines:
             validCode &= line & "\n"
         echo output
         currentOutputLine = len(output.splitLines)-1
@@ -89,7 +89,7 @@ proc getPromptSymbol(): string =
     # Auto-indentation (multi-level)
     result &= indentationSpaces.repeat(indentationLevel)
 
-proc triggerIndentation*(line: string): bool =
+proc hasIndentationTrigger*(line: string): bool =
     if line.len > 0:
         for trigger in indentationTriggers:
             if line.strip().endsWith(trigger):
@@ -115,13 +115,13 @@ proc runForever() =
         buffer.flushFile()
 
         # Check for indentation
-        if myline.triggerIndentation:
+        if myline.hasIndentationTrigger():
             indentationLevel += 1
 
         # Don't run yet if still on indentation
         if indentationLevel != 0:
             # Skip indentation for first line
-            if myline.triggerIndentation:
+            if myline.hasIndentationTrigger():
                 tempIndentCode &= indentationSpaces.repeat(indentationLevel-1) & myline & "\n"
             else:
                 tempIndentCode &= indentationSpaces.repeat(indentationLevel) & myline & "\n"
@@ -158,17 +158,19 @@ proc runForever() =
         tempIndentCode = ""
 
 when isMainModule:
+    # Preload existing source code: inim example.nim
     if paramCount() > 0:
         let filePath = paramStr(paramCount())
         if not filePath.fileExists:
-            echo "File ", filePath, " does not exists"
+            echo "inim: File ", filePath, " does not exist"
             quit(1)
         if not filePath.endsWith(".nim"):
-            echo filePath, " is not a valid Nim file"
+            echo "inim: ", filePath, " is not a Nim file"
             quit(1)
         let fileData = getFileData(filePath)
         init(fileData)
     else:
-        init(nil)
-        welcomeScreen()
+        init()  # Clean init
+
+    welcomeScreen()
     runForever()
