@@ -9,7 +9,7 @@ const
 let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
-    compileCmd = "nim compile --run --verbosity=0 --hints=off " & bufferSource
+    compileCmd = "nim compile --run --verbosity=0 --hints=off --path=./ " & bufferSource
 
 var
     currentOutputLine = 0  # Last line shown from buffer's stdout
@@ -162,10 +162,10 @@ when isMainModule:
     if paramCount() > 0:
         let filePath = paramStr(paramCount())
         if not filePath.fileExists:
-            echo "inim: File ", filePath, " does not exist"
+            echo "inim: cannot access '", filePath, "': No such file"
             quit(1)
         if not filePath.endsWith(".nim"):
-            echo "inim: ", filePath, " is not a Nim file"
+            echo "inim: '", filePath, "' is not a Nim file"
             quit(1)
         let fileData = getFileData(filePath)
         init(fileData)

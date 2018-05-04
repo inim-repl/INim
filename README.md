@@ -9,7 +9,8 @@
 * Auto-indent (`if`, `for`, `proc`, `var`, ...)
 * Arrow keys support (command history and line navigation)
 * Uses current `nim` compiler in PATH
-* Preload existing source code: `inim example.nim`
+* Runs in the current directory: `import` your local modules (access to exported* symbols)
+* Preload existing source code (access to non-exported* symbols): `inim example.nim`
 
 ## Contributing
 Pull requests and suggestions are welcome.
