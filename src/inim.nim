@@ -1,7 +1,7 @@
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
-    INimVersion = "0.2.2"
+    INimVersion = "0.2.3"
     indentationTriggers = ["=", ":", "var", "let", "const", "import"]  # endsWith
     indentationSpaces = "    "
     bufferDefaultImports = "import typetraits"  # @TODO: shortcut to display type and value
@@ -103,13 +103,18 @@ proc hasIndentationTrigger*(line: string): bool =
 
 proc runForever() =
     while true:
-        let myline = readLineFromStdin(getPromptSymbol()).strip
+        # Read line
+        var myline: string
+        try:
+            myline = readLineFromStdin(getPromptSymbol()).strip
+        except IOError:
+            return
 
         # Special commands
         if myline in ["exit", "quit()"]:
             cleanExit()
 
-        # Empty line: leave indentation level otherwise do nothing
+        # Empty line: exit indentation level, otherwise do nothing
         if myline == "":
             if indentationLevel > 0:
                 indentationLevel -= 1
