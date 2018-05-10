@@ -1,12 +1,12 @@
 # MIT License
-# Copyright (C) 2018 Andrei Regiani
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
     INimVersion = "0.2.4"
-    indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", "object", "enum"] # endsWith
     indentSpaces = "    "
-
+    indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
+                      "object", "enum"] # endsWith
+    
 let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
@@ -71,12 +71,14 @@ proc init(preload: string = nil) =
 
     buffer = open(bufferSource, fmWrite)
     if preload == nil:
-        discard execCmdEx(compileCmd) # First dummy compilation so next one is faster
+        # First dummy compilation so next one is faster
+        discard execCmdEx(compileCmd)
         return
 
     buffer.writeLine(preload)
     buffer.flushFile()
-    let (output, status) = execCmdEx(compileCmd) # Check preloaded file compiles succesfully
+    # Check preloaded file compiles succesfully
+    let (output, status) = execCmdEx(compileCmd)
     if status == 0:
         for line in preload.splitLines:
             validCode &= line & "\n"
