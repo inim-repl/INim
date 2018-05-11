@@ -1,4 +1,5 @@
 # MIT License
+# Copyright (c) 2018 Andrei Regiani
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
@@ -57,14 +58,47 @@ proc getFileData(path: string): string =
         result = nil
 
 proc showError(output: string) =
-    ## Print only error message, without file and line number
+    ## 'Discarded' errors will be handled to print its value and type.
+    ## Other errors print only relevant message without file and line number info.
     ## e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
-    ## echo "Error: undeclared identifier: 'foo'"
-    stdout.setForegroundColor(fgRed, true)
     let pos = output.find(")") + 2
-    echo output[pos..^1].strip
-    stdout.resetAttributes()
-    stdout.flushFile()
+    # "Error: expression 'foo' is of type 'int' and has to be discarded"
+    var message = output[pos..^1].strip
+
+    # Discarded error: shortcut to print values: >>> foo
+    if message.endsWith("discarded"):
+        # Remove text until we can split by single-quote: foo'int
+        message = message.replace("Error: expression '")
+        message = message.replace(" is of type '")
+        message = message.replace("' and has to be discarded")
+        let message_seq = message.split("'")
+        let symbol_identifier = message_seq[0]  # foo
+        let symbol_type = message_seq[1]  # int
+        let shortcut = "echo " & symbol_identifier & ", \" : " & symbol_type & "\""
+
+        buffer.writeLine(shortcut)
+        buffer.flushFile()
+
+        let (output, status) = execCmdEx(compileCmd)
+        if status == 0:
+            let lines = output.splitLines()
+            stdout.setForegroundColor(fgCyan, true)
+            echo lines[^2]  # ^1 is empty line, ^2 is last stdout
+            stdout.resetAttributes()
+            stdout.flushFile()
+            currentOutputLine = len(lines)-1
+        else:
+            stdout.setForegroundColor(fgRed, true)
+            echo output.splitLines()[0]
+            stdout.resetAttributes()
+            stdout.flushFile()
+
+    # Display all other errors
+    else:
+        stdout.setForegroundColor(fgRed, true)
+        echo message
+        stdout.resetAttributes()
+        stdout.flushFile()
 
 proc init(preload: string = nil) =
     setControlCHook(cleanExit)
@@ -161,13 +195,13 @@ proc runForever() =
 
         # Compilation error
         else:
-            indentLevel = 0
-            showError(output)
             # Write back valid code to buffer
             buffer.close()
             buffer = open(bufferSource, fmWrite)
             buffer.write(validCode)
             buffer.flushFile()
+            showError(output)
+            indentLevel = 0
 
         # Clean up
         tempIndentCode = ""
