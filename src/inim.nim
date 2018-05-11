@@ -3,7 +3,7 @@
 import os, osproc, rdstdin, strutils, terminal, times
 
 const
-    INimVersion = "0.2.4"
+    INimVersion = "0.2.5"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
@@ -67,13 +67,18 @@ proc showError(output: string) =
 
     # Discarded error: shortcut to print values: >>> foo
     if message.endsWith("discarded"):
-        # Remove text until we can split by single-quote: foo'int
+        # Remove text bloat to result into: foo'int
         message = message.replace("Error: expression '")
         message = message.replace(" is of type '")
         message = message.replace("' and has to be discarded")
-        let message_seq = message.split("'")
-        let symbol_identifier = message_seq[0]  # foo
-        let symbol_type = message_seq[1]  # int
+
+        # Make split char to be a semicolon instead of a single-quote
+        # To avoid char type conflict having single-quotes
+        message[message.rfind("'")] = ';' # last single-quote
+
+        let message_seq = message.split(";") # foo;int  |  'a';char
+        let symbol_identifier = message_seq[0] # foo
+        let symbol_type = message_seq[1] # int
         let shortcut = "echo " & symbol_identifier & ", \" : " & symbol_type & "\""
 
         buffer.writeLine(shortcut)

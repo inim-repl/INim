@@ -12,7 +12,7 @@
 * Runs in the current directory: `import` your local modules (access to exported* symbols)
 * Preload existing source code (access to non-exported* symbols): `inim example.nim`
 * Colorized output (red for errors, cyan for results)
-* Shortcut to print values of discarded symbols: ```>>> x```
+* Prints out value and type of discarded expressions: ```>>> x```
 
 ## Contributing
 Pull requests and suggestions are welcome.
