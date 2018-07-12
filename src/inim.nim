@@ -191,9 +191,13 @@ proc runForever() =
             let lines = output.splitLines
             # Print only output you haven't seen
             stdout.setForegroundColor(fgCyan, true)
-            for line in lines[currentOutputLine..^1]:
-                if line.strip != "":
-                    echo line
+
+            let new_lines = lines[currentOutputLine..^1]
+            for index, line in new_lines:
+                if index+1 == len(new_lines) and line == "":
+                    continue
+                echo line
+
             currentOutputLine = len(lines)-1
             stdout.resetAttributes()
             stdout.flushFile()
