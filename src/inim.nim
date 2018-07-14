@@ -10,7 +10,7 @@ type App = ref object
 var app:App
 
 const
-    INimVersion = "0.2.5"
+    INimVersion = "0.3.0"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
@@ -200,11 +200,13 @@ proc runForever() =
             else:
                 validCode &= myline & "\n"
             let lines = output.splitLines
+            
             # Print only output you haven't seen
             stdout.setForegroundColor(fgCyan, true)
-
             let new_lines = lines[currentOutputLine..^1]
+
             for index, line in new_lines:
+                # Skip last empty line (otherwise blank line is displayed after command)
                 if index+1 == len(new_lines) and line == "":
                     continue
                 echo line
