@@ -1,6 +1,12 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
-import os, osproc, rdstdin, strutils, terminal, times
+import os, osproc, rdstdin, strutils, terminal, times, strformat
+
+type App = ref object
+    nim: string
+    srcFile: string
+
+var app:App
 
 const
     INimVersion = "0.2.5"
@@ -11,7 +17,10 @@ const
 let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
-    compileCmd = "nim compile --run --verbosity=0 --hints=off --path=./ " & bufferSource
+
+proc compileCode():auto =
+    let compileCmd = fmt"{app.nim} compile --run --verbosity=0 --hints=off --path=./ {bufferSource}"
+    result = execCmdEx(compileCmd)
 
 var
     currentOutputLine = 0 # Last line shown from buffer's stdout
@@ -20,17 +29,22 @@ var
     indentLevel = 0 # Current
     buffer: File
 
+proc newApp(nim: string, srcFile: string):App=
+    result.new()
+    result.nim=nim
+    result.srcFile=srcFile
+
 proc getNimVersion*(): string =
-    let (output, status) = execCmdEx("nim --version")
-    if status != 0:
-        echo "inim: Program \"nim\" not found in PATH"
-        quit(1)
+    let (output, status) = execCmdEx(fmt"{app.nim} --version")
+    doAssert status == 0, fmt"make sure {app.nim} is in PATH"
     result = output.splitLines()[0]
 
 proc getNimPath(): string =
-    var which_cmd = "which nim" # POSIX
+    # TODO: use `which` PENDING https://github.com/nim-lang/Nim/issues/8311
     when defined(Windows):
-        which_cmd = "where nim" # Windows
+        let which_cmd = fmt"where {app.nim}"
+    else:
+        let which_cmd = fmt"which {app.nim}"
     let (output, status) = execCmdEx(which_cmd)
     if status == 0:
         return " at " & output
@@ -84,7 +98,7 @@ proc showError(output: string) =
         buffer.writeLine(shortcut)
         buffer.flushFile()
 
-        let (output, status) = execCmdEx(compileCmd)
+        let (output, status) = compileCode()
         if status == 0:
             let lines = output.splitLines()
             stdout.setForegroundColor(fgCyan, true)
@@ -111,13 +125,13 @@ proc init(preload: string = nil) =
     buffer = open(bufferSource, fmWrite)
     if preload == nil:
         # First dummy compilation so next one is faster
-        discard execCmdEx(compileCmd)
+        discard compileCode()
         return
 
     buffer.writeLine(preload)
     buffer.flushFile()
     # Check preloaded file compiles succesfully
-    let (output, status) = execCmdEx(compileCmd)
+    let (output, status) = compileCode()
     if status == 0:
         for line in preload.splitLines:
             validCode &= line & "\n"
@@ -180,7 +194,7 @@ proc runForever() =
             continue
 
         # Compile buffer
-        let (output, status) = execCmdEx(compileCmd)
+        let (output, status) = compileCode()
 
         # Succesful compilation, expression is valid
         if status == 0:
@@ -215,20 +229,22 @@ proc runForever() =
         # Clean up
         tempIndentCode = ""
 
-when isMainModule:
-    # Preload existing source code: inim example.nim
-    if paramCount() > 0:
-        let filePath = paramStr(paramCount())
-        if not filePath.fileExists:
-            echo "inim: cannot access '", filePath, "': No such file"
-            quit(1)
-        if not filePath.endsWith(".nim"):
-            echo "inim: '", filePath, "' is not a Nim file"
-            quit(1)
-        let fileData = getFileData(filePath)
+proc main(nim="nim", srcFile = "") =
+    ## inim interpreter
+    app = newApp(nim, srcFile)
+    if srcFile.len>0:
+        doAssert(srcFile.fileExists, "cannot access " & srcFile)
+        doAssert(srcFile.splitFile.ext == ".nim")
+        let fileData = getFileData(srcFile)
         init(fileData)
     else:
         init() # Clean init
-
     welcomeScreen()
     runForever()
+
+when isMainModule:
+    import cligen
+    dispatch(main, help = {
+            "nim": "path to nim compiler",
+            "srcFile": "nim script to run",
+        })
