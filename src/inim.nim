@@ -5,6 +5,7 @@ import os, osproc, rdstdin, strutils, terminal, times, strformat
 type App = ref object
     nim: string
     srcFile: string
+    showHeader: bool
 
 var app:App
 
@@ -29,11 +30,6 @@ var
     tempIndentCode = "" # Later append to `validCode` if whole block compiles well
     indentLevel = 0 # Current
     buffer: File
-
-proc newApp(nim: string, srcFile: string):App=
-    result.new()
-    result.nim=nim
-    result.srcFile=srcFile
 
 proc getNimVersion*(): string =
     let (output, status) = execCmdEx(fmt"{app.nim} --version")
@@ -230,9 +226,13 @@ proc runForever() =
         # Clean up
         tempIndentCode = ""
 
-proc main(nim="nim", srcFile = "") =
+proc main(nim="nim", srcFile = "", showHeader = true) =
     ## inim interpreter
-    app = newApp(nim, srcFile)
+    app.new()
+    app.nim=nim
+    app.srcFile=srcFile
+    app.showHeader=showHeader
+
     if srcFile.len>0:
         doAssert(srcFile.fileExists, "cannot access " & srcFile)
         doAssert(srcFile.splitFile.ext == ".nim")
@@ -240,7 +240,7 @@ proc main(nim="nim", srcFile = "") =
         init(fileData)
     else:
         init() # Clean init
-    welcomeScreen()
+    if app.showHeader: welcomeScreen()
     runForever()
 
 when isMainModule:
@@ -248,4 +248,5 @@ when isMainModule:
     dispatch(main, help = {
             "nim": "path to nim compiler",
             "srcFile": "nim script to run",
+            "showHeader": "show program info startup",
         })
