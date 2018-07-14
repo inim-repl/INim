@@ -19,7 +19,8 @@ let
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
 
 proc compileCode():auto =
-    let compileCmd = fmt"{app.nim} compile --run --verbosity=0 --hints=off --path=./ {bufferSource}"
+    # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
+    let compileCmd = fmt"{app.nim} compile --run --verbosity=0 --hints=off --hint[source]=off --path=./ {bufferSource}"
     result = execCmdEx(compileCmd)
 
 var
