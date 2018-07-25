@@ -10,7 +10,7 @@ type App = ref object
 var app:App
 
 const
-    INimVersion = "0.3.0"
+    INimVersion = "0.3.1"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
@@ -68,12 +68,48 @@ proc getFileData(path: string): string =
     except:
         result = nil
 
+proc compilationSuccess(current_statement, output: string) =
+    if len(tempIndentCode) > 0:
+        validCode &= tempIndentCode
+    else:
+        validCode &= current_statement & "\n"
+    let lines = output.splitLines
+    
+    # Print only output you haven't seen
+    stdout.setForegroundColor(fgCyan, true)
+    let new_lines = lines[currentOutputLine..^1]
+    
+    for index, line in new_lines:
+        # Skip last empty line (otherwise blank line is displayed after command)
+        if index+1 == len(new_lines) and line == "":
+            continue
+        echo line
+
+    currentOutputLine = len(lines)-1
+    stdout.resetAttributes()
+    stdout.flushFile()
+
+proc bufferRestoreValidCode() =
+    buffer.close()
+    buffer = open(bufferSource, fmWrite)
+    buffer.write(validCode)
+    buffer.flushFile()
+
 proc showError(output: string) =
-    ## 'Discarded' errors will be handled to print its value and type.
-    ## Other errors print only relevant message without file and line number info.
-    ## e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
+    # Runtime errors:
+    if output.contains("Error: unhandled exception:"):
+        stdout.setForegroundColor(fgRed, true)
+        echo output.splitLines()[^3] # e.g. "Error: unhandled exception: index out of bounds [IndexError]"
+        stdout.resetAttributes()
+        stdout.flushFile()
+        return
+
+    # Compilation errors:
+
+    # Prints only relevant message without file and line number info.
+    # e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
+    # Becomes: "Error: undeclared identifier: 'foo'"
     let pos = output.find(")") + 2
-    # "Error: expression 'foo' is of type 'int' and has to be discarded"
     var message = output[pos..^1].strip
 
     # Discarded error: shortcut to print values: >>> foo
@@ -97,17 +133,10 @@ proc showError(output: string) =
 
         let (output, status) = compileCode()
         if status == 0:
-            let lines = output.splitLines()
-            stdout.setForegroundColor(fgCyan, true)
-            echo lines[^2]  # ^1 is empty line, ^2 is last stdout
-            stdout.resetAttributes()
-            stdout.flushFile()
-            currentOutputLine = len(lines)-1
+            compilationSuccess(shortcut, output)
         else:
-            stdout.setForegroundColor(fgRed, true)
-            echo output.splitLines()[0]
-            stdout.resetAttributes()
-            stdout.flushFile()
+            bufferRestoreValidCode()
+            showError(output)
 
     # Display all other errors
     else:
@@ -195,33 +224,12 @@ proc runForever() =
 
         # Succesful compilation, expression is valid
         if status == 0:
-            if len(tempIndentCode) > 0:
-                validCode &= tempIndentCode
-            else:
-                validCode &= myline & "\n"
-            let lines = output.splitLines
-            
-            # Print only output you haven't seen
-            stdout.setForegroundColor(fgCyan, true)
-            let new_lines = lines[currentOutputLine..^1]
-
-            for index, line in new_lines:
-                # Skip last empty line (otherwise blank line is displayed after command)
-                if index+1 == len(new_lines) and line == "":
-                    continue
-                echo line
-
-            currentOutputLine = len(lines)-1
-            stdout.resetAttributes()
-            stdout.flushFile()
+            compilationSuccess(myline, output)
 
         # Compilation error
         else:
             # Write back valid code to buffer
-            buffer.close()
-            buffer = open(bufferSource, fmWrite)
-            buffer.write(validCode)
-            buffer.flushFile()
+            bufferRestoreValidCode()
             showError(output)
             indentLevel = 0
 
