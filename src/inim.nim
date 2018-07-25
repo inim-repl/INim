@@ -49,7 +49,7 @@ proc getNimPath(): string =
 
 proc welcomeScreen() =
     stdout.setForegroundColor(fgCyan)
-    stdout.writeLine "INim ", INimVersion
+    stdout.writeLine "👑 INim ", INimVersion
     stdout.write getNimVersion()
     stdout.write getNimPath()
     stdout.resetAttributes()
@@ -170,7 +170,7 @@ proc init(preload: string = nil) =
 
 proc getPromptSymbol(): string =
     if indentLevel == 0:
-        result = ">>> "
+        result = "inim> "
     else:
         result =  "... "
     # Auto-indent (multi-level)
