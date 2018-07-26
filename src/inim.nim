@@ -162,14 +162,12 @@ proc init(preload: string = nil) =
     # Check preloaded file compiles succesfully
     let (output, status) = compileCode()
     if status == 0:
-        for line in preload.splitLines:
-            validCode &= line & "\n"
-        echo output
-        currentOutputLine = len(output.splitLines)-1
+        compilationSuccess(preload, output)
     # Compilation error
     else:
         showError(output)
-        cleanExit()
+        bufferRestoreValidCode()
+        return
 
 proc getPromptSymbol(): string =
     if indentLevel == 0:
@@ -246,20 +244,22 @@ proc main(nim="nim", srcFile = "", showHeader = true) =
     app.srcFile=srcFile
     app.showHeader=showHeader
 
-    if srcFile.len>0:
+    if app.showHeader: welcomeScreen()
+
+    if srcFile.len > 0:
         doAssert(srcFile.fileExists, "cannot access " & srcFile)
         doAssert(srcFile.splitFile.ext == ".nim")
         let fileData = getFileData(srcFile)
         init(fileData)
     else:
         init() # Clean init
-    if app.showHeader: welcomeScreen()
+    
     runForever()
 
 when isMainModule:
     import cligen
     dispatch(main, help = {
             "nim": "path to nim compiler",
-            "srcFile": "nim script to run",
+            "srcFile": "nim script to preload/run",
             "showHeader": "show program info startup",
         })
