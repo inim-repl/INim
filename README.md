@@ -11,7 +11,7 @@
 * Prints out value and type of discarded expressions: ```>>> x```
 * Uses current `nim` compiler in PATH
 * Runs in the current directory: `import` your local modules (access to exported* symbols)
-* Preload existing source code (access to non-exported* symbols): `inim example.nim`
+* Preload existing source code (access to non-exported* symbols): `inim -s example.nim`
 * Colorized output
 
 ## Contributing
