@@ -10,7 +10,7 @@ type App = ref object
 var app:App
 
 const
-    INimVersion = "0.3.1"
+    INimVersion = "0.3.2"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
@@ -99,7 +99,10 @@ proc showError(output: string) =
     # Runtime errors:
     if output.contains("Error: unhandled exception:"):
         stdout.setForegroundColor(fgRed, true)
-        echo output.splitLines()[^3] # e.g. "Error: unhandled exception: index out of bounds [IndexError]"
+        # Display only the relevant lines of the stack trace
+        let lines = output.splitLines()
+        for line in lines[len(lines)-6 .. len(lines)-3]:
+            echo line
         stdout.resetAttributes()
         stdout.flushFile()
         return
