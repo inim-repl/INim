@@ -15,7 +15,7 @@ const
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
-    embeddedCode = staticRead("embedded.nim") # preloaded code into user's environment (INim commands included)
+    embeddedCode = staticRead("embedded.nim") # preloaded code into user's environment
     
 let
     uniquePrefix = epochTime().int
@@ -58,7 +58,7 @@ proc welcomeScreen() =
     stdout.resetAttributes()
     stdout.flushFile()
 
-proc cleanExit() {.noconv.} =
+proc cleanExit() =
     buffer.close()
     removeFile(bufferSource) # Temp .nim
     removeFile(bufferSource[0..^5]) # Temp binary, same filename just without ".nim"
@@ -122,11 +122,11 @@ proc showError(output: string) =
 
     # Discarded error: shortcut to print values: inim> myvar
     if message.endsWith("discarded"):
+        # Following lines grabs the type from the discarded expression:
         # Remove text bloat to result into: e.g. foo'int
         message = message.replace("Error: expression '")
         message = message.replace(" is of type '")
         message = message.replace("' and has to be discarded")
-
         # Make split char to be a semicolon instead of a single-quote,
         # To avoid char type conflict having single-quotes
         message[message.rfind("'")] = ';' # last single-quote
@@ -157,11 +157,10 @@ proc showError(output: string) =
         stdout.flushFile()
 
 proc init(preload: string = nil) =
-    setControlCHook(cleanExit)
     bufferRestoreValidCode()
 
     if preload == nil:
-        # First dummy compilation so next one is faster
+        # First dummy compilation so next one is faster for the user
         discard compileCode()
         return
 
@@ -197,7 +196,9 @@ proc runForever() =
         try:
             currentExpression = readLineFromStdin(getPromptSymbol()).strip
         except IOError:
-            return
+            bufferRestoreValidCode()
+            indentLevel = 0
+            continue
 
         # Special commands
         if currentExpression in ["exit", "quit()"]:
@@ -257,7 +258,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true) =
         doAssert(srcFile.fileExists, "cannot access " & srcFile)
         doAssert(srcFile.splitFile.ext == ".nim")
         let fileData = getFileData(srcFile)
-        init(fileData)
+        init(fileData) # Preload code
     else:
         init() # Clean init
     
