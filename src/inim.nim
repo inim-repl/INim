@@ -32,6 +32,7 @@ var
     validCode = "" # All statements compiled succesfully
     tempIndentCode = "" # Later append to `validCode` if whole block compiles well
     indentLevel = 0 # Current
+    previouslyIndented = false # If had indentation during showError(), indentLevel resets before calling it
     buffer: File
 
 proc getNimVersion*(): string =
@@ -81,7 +82,6 @@ proc compilationSuccess(current_statement, output: string) =
     # Print only output you haven't seen
     stdout.setForegroundColor(fgCyan, true)
     let new_lines = lines[currentOutputLine..^1]
-    
     for index, line in new_lines:
         # Skip last empty line (otherwise blank line is displayed after command)
         if index+1 == len(new_lines) and line == "":
@@ -121,7 +121,7 @@ proc showError(output: string) =
     var message = output[pos..^1].strip
 
     # Discarded error: shortcut to print values: inim> myvar
-    if message.endsWith("discarded"):
+    if previouslyIndented == false and message.endsWith("discarded"):
         # Following lines grabs the type from the discarded expression:
         # Remove text bloat to result into: e.g. foo'int
         message = message.replace("Error: expression '")
@@ -147,7 +147,8 @@ proc showError(output: string) =
             compilationSuccess(shortcut, output)
         else:
             bufferRestoreValidCode()
-            showError(output)
+            showError(output) # Recursion
+            
 
     # Display all other errors
     else:
@@ -155,6 +156,7 @@ proc showError(output: string) =
         echo message
         stdout.resetAttributes()
         stdout.flushFile()
+        previouslyIndented = false
 
 proc init(preload: string = nil) =
     bufferRestoreValidCode()
@@ -172,8 +174,8 @@ proc init(preload: string = nil) =
         compilationSuccess(preload, output)
     # Compilation error
     else:
-        showError(output)
         bufferRestoreValidCode()
+        showError(output)
         return
 
 proc getPromptSymbol(): string =
@@ -216,9 +218,10 @@ proc runForever() =
         buffer.writeLine(indentSpaces.repeat(indentLevel) & currentExpression)
         buffer.flushFile()
 
-        # Check for indent
+        # Check for indent and trigger it
         if currentExpression.hasIndentTrigger():
             indentLevel += 1
+            previouslyIndented = true
 
         # Don't run yet if still on indent
         if indentLevel != 0:
@@ -240,8 +243,8 @@ proc runForever() =
         else:
             # Write back valid code to buffer
             bufferRestoreValidCode()
-            showError(output)
             indentLevel = 0
+            showError(output)
 
         # Clean up
         tempIndentCode = ""
