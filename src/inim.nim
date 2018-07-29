@@ -1,6 +1,7 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
-import os, osproc, rdstdin, strutils, terminal, times, strformat
+
+import os, osproc, rdstdin, strformat, strutils, terminal, times, strformat
 
 type App = ref object
     nim: string
@@ -14,6 +15,7 @@ const
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
+    embeddedCode = staticRead("embedded.nim") # preloaded code into user's environment (INim commands included)
     
 let
     uniquePrefix = epochTime().int
@@ -25,6 +27,7 @@ proc compileCode():auto =
     result = execCmdEx(compileCmd)
 
 var
+    currentExpression: string # Last stdin to evaluate
     currentOutputLine = 0 # Last line shown from buffer's stdout
     validCode = "" # All statements compiled succesfully
     tempIndentCode = "" # Later append to `validCode` if whole block compiles well
@@ -90,8 +93,10 @@ proc compilationSuccess(current_statement, output: string) =
     stdout.flushFile()
 
 proc bufferRestoreValidCode() =
-    buffer.close()
+    if buffer != nil:
+        buffer.close()
     buffer = open(bufferSource, fmWrite)
+    buffer.writeLine(embeddedCode)
     buffer.write(validCode)
     buffer.flushFile()
 
@@ -115,21 +120,24 @@ proc showError(output: string) =
     let pos = output.find(")") + 2
     var message = output[pos..^1].strip
 
-    # Discarded error: shortcut to print values: >>> foo
+    # Discarded error: shortcut to print values: inim> myvar
     if message.endsWith("discarded"):
-        # Remove text bloat to result into: foo'int
+        # Remove text bloat to result into: e.g. foo'int
         message = message.replace("Error: expression '")
         message = message.replace(" is of type '")
         message = message.replace("' and has to be discarded")
 
-        # Make split char to be a semicolon instead of a single-quote
+        # Make split char to be a semicolon instead of a single-quote,
         # To avoid char type conflict having single-quotes
         message[message.rfind("'")] = ';' # last single-quote
+        let message_seq = message.split(";") # expression;type, e.g 'a';char
+        let typeExpression = message_seq[1] # type, e.g. char
 
-        let message_seq = message.split(";") # foo;int  |  'a';char
-        let symbol_identifier = message_seq[0] # foo
-        let symbol_type = message_seq[1] # int
-        let shortcut = "echo " & symbol_identifier & ", \" : " & symbol_type & "\""
+        let shortcut = fmt"""
+        stdout.write {currentExpression}
+        stdout.write " : "
+        stdout.writeLine "{typeExpression}"
+        """.replace("        ", "")
 
         buffer.writeLine(shortcut)
         buffer.flushFile()
@@ -150,8 +158,8 @@ proc showError(output: string) =
 
 proc init(preload: string = nil) =
     setControlCHook(cleanExit)
+    bufferRestoreValidCode()
 
-    buffer = open(bufferSource, fmWrite)
     if preload == nil:
         # First dummy compilation so next one is faster
         discard compileCode()
@@ -173,7 +181,7 @@ proc getPromptSymbol(): string =
     if indentLevel == 0:
         result = "inim> "
     else:
-        result =  "... "
+        result =  "....  "
     # Auto-indent (multi-level)
     result &= indentSpaces.repeat(indentLevel)
 
@@ -186,38 +194,37 @@ proc hasIndentTrigger*(line: string): bool =
 proc runForever() =
     while true:
         # Read line
-        var myline: string
         try:
-            myline = readLineFromStdin(getPromptSymbol()).strip
+            currentExpression = readLineFromStdin(getPromptSymbol()).strip
         except IOError:
             return
 
         # Special commands
-        if myline in ["exit", "quit()"]:
+        if currentExpression in ["exit", "quit()"]:
             cleanExit()
 
         # Empty line: exit indent level, otherwise do nothing
-        if myline == "":
+        if currentExpression == "":
             if indentLevel > 0:
                 indentLevel -= 1
             elif indentLevel == 0:
                 continue
 
         # Write your line to buffer(temp) source code
-        buffer.writeLine(indentSpaces.repeat(indentLevel) & myline)
+        buffer.writeLine(indentSpaces.repeat(indentLevel) & currentExpression)
         buffer.flushFile()
 
         # Check for indent
-        if myline.hasIndentTrigger():
+        if currentExpression.hasIndentTrigger():
             indentLevel += 1
 
         # Don't run yet if still on indent
         if indentLevel != 0:
             # Skip indent for first line
-            if myline.hasIndentTrigger():
-                tempIndentCode &= indentSpaces.repeat(indentLevel-1) & myline & "\n"
+            if currentExpression.hasIndentTrigger():
+                tempIndentCode &= indentSpaces.repeat(indentLevel-1) & currentExpression & "\n"
             else:
-                tempIndentCode &= indentSpaces.repeat(indentLevel) & myline & "\n"
+                tempIndentCode &= indentSpaces.repeat(indentLevel) & currentExpression & "\n"
             continue
 
         # Compile buffer
@@ -225,7 +232,7 @@ proc runForever() =
 
         # Succesful compilation, expression is valid
         if status == 0:
-            compilationSuccess(myline, output)
+            compilationSuccess(currentExpression, output)
 
         # Compilation error
         else:
@@ -237,7 +244,7 @@ proc runForever() =
         # Clean up
         tempIndentCode = ""
 
-proc main(nim="nim", srcFile = "", showHeader = true) =
+proc main(nim = "nim", srcFile = "", showHeader = true) =
     ## inim interpreter
     app.new()
     app.nim=nim
