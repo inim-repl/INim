@@ -32,7 +32,7 @@ var
     validCode = "" # All statements compiled succesfully
     tempIndentCode = "" # Later append to `validCode` if whole block compiles well
     indentLevel = 0 # Current
-    previouslyIndented = false # If had indentation during showError(), indentLevel resets before calling it
+    previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
     buffer: File
 
 proc getNimVersion*(): string =
@@ -102,6 +102,7 @@ proc bufferRestoreValidCode() =
 
 proc showError(output: string) =
     # Runtime errors:
+
     if output.contains("Error: unhandled exception:"):
         stdout.setForegroundColor(fgRed, true)
         # Display only the relevant lines of the stack trace
@@ -148,7 +149,6 @@ proc showError(output: string) =
         else:
             bufferRestoreValidCode()
             showError(output) # Recursion
-            
 
     # Display all other errors
     else:
@@ -181,6 +181,7 @@ proc init(preload: string = nil) =
 proc getPromptSymbol(): string =
     if indentLevel == 0:
         result = "inim> "
+        previouslyIndented = false
     else:
         result =  "....  "
     # Auto-indent (multi-level)
