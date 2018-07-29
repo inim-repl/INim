@@ -11,11 +11,11 @@ type App = ref object
 var app:App
 
 const
-    INimVersion = "0.3.2"
+    INimVersion = "0.4.0"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
-    embeddedCode = staticRead("embedded.nim") # preloaded code into user's environment
+    embeddedCode = staticRead("embedded.nim") # preloaded code into user's session
     
 let
     uniquePrefix = epochTime().int
@@ -198,10 +198,11 @@ proc runForever() =
         except IOError:
             bufferRestoreValidCode()
             indentLevel = 0
+            tempIndentCode = ""
             continue
 
         # Special commands
-        if currentExpression in ["exit", "quit()"]:
+        if currentExpression in ["exit", "exit()", "quit", "quit()"]:
             cleanExit()
 
         # Empty line: exit indent level, otherwise do nothing
