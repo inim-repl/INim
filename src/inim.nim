@@ -136,11 +136,10 @@ proc showError(output: string) =
 
         let shortcut = fmt"""
         stdout.write $({currentExpression})
-        stdout.setForegroundColor(fgYellow)
+        stdout.write "\e[33m" # Yellow
         stdout.write "  : "
         stdout.write "{typeExpression}"
-        stdout.resetAttributes()
-        stdout.writeLine ""
+        stdout.writeLine "\e[39m" # Reset color
         """.replace("        ", "")
 
         buffer.writeLine(shortcut)
