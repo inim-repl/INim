@@ -52,8 +52,9 @@ proc getNimPath(): string =
     return "\n"
 
 proc welcomeScreen() =
-    stdout.setForegroundColor(fgCyan)
+    stdout.setForegroundColor(fgYellow)
     stdout.writeLine "👑 INim ", INimVersion
+    stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
     stdout.resetAttributes()
@@ -102,12 +103,11 @@ proc bufferRestoreValidCode() =
 
 proc showError(output: string) =
     # Runtime errors:
-
     if output.contains("Error: unhandled exception:"):
         stdout.setForegroundColor(fgRed, true)
         # Display only the relevant lines of the stack trace
         let lines = output.splitLines()
-        for line in lines[len(lines)-6 .. len(lines)-3]:
+        for line in lines[len(lines)-5 .. len(lines)-3]:
             echo line
         stdout.resetAttributes()
         stdout.flushFile()
@@ -135,9 +135,12 @@ proc showError(output: string) =
         let typeExpression = message_seq[1] # type, e.g. char
 
         let shortcut = fmt"""
-        stdout.write {currentExpression}
-        stdout.write " : "
-        stdout.writeLine "{typeExpression}"
+        stdout.write $({currentExpression})
+        stdout.setForegroundColor(fgYellow)
+        stdout.write "  : "
+        stdout.write "{typeExpression}"
+        stdout.resetAttributes()
+        stdout.writeLine ""
         """.replace("        ", "")
 
         buffer.writeLine(shortcut)
@@ -180,10 +183,10 @@ proc init(preload: string = nil) =
 
 proc getPromptSymbol(): string =
     if indentLevel == 0:
-        result = "inim> "
+        result = "nim> "
         previouslyIndented = false
     else:
-        result =  "....  "
+        result =  ".... "
     # Auto-indent (multi-level)
     result &= indentSpaces.repeat(indentLevel)
 

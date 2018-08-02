@@ -1,1 +1,3 @@
-# This module is preloaded into user's REPL session
+## INim/src/embedded.nim: preloaded into user's REPL session
+import terminal # Discard shortcut coloring
+## ---------------------------------------------------------
