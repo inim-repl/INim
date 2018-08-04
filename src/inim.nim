@@ -11,11 +11,11 @@ type App = ref object
 var app:App
 
 const
-    INimVersion = "0.4.0"
+    INimVersion = "0.4.1"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
                       "object", "enum"] # endsWith
-    embeddedCode = staticRead("embedded.nim") # preloaded code into user's session
+    embeddedCode = staticRead("inimpkg/embedded.nim") # preloaded code into user's session
     
 let
     uniquePrefix = epochTime().int
@@ -53,7 +53,9 @@ proc getNimPath(): string =
 
 proc welcomeScreen() =
     stdout.setForegroundColor(fgYellow)
-    stdout.writeLine "👑 INim ", INimVersion
+    when defined(posix):
+        stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
+    stdout.writeLine "INim ", INimVersion
     stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
@@ -66,6 +68,9 @@ proc cleanExit(exitCode = 0) =
     removeFile(bufferSource[0..^5]) # Temp binary, same filename just without ".nim"
     removeDir(getTempDir() & "nimcache")
     quit(exitCode)
+
+proc controlCHook() {.noconv.} =
+    cleanExit(1)
 
 proc getFileData(path: string): string =
     try:
@@ -153,13 +158,22 @@ proc showError(output: string) =
         let message_seq = message.split(";") # expression;type, e.g 'a';char
         let typeExpression = message_seq[1] # type, e.g. char
 
-        let shortcut = fmt"""
-        stdout.write $({currentExpression})
-        stdout.write "\e[33m" # Yellow
-        stdout.write "  : "
-        stdout.write "{typeExpression}"
-        echo "\e[39m" # Reset color
-        """.replace("        ", "")
+        var shortcut:string
+        when defined(Windows):
+            shortcut = fmt"""
+            stdout.write $({currentExpression})
+            stdout.write "  : "
+            stdout.write "{typeExpression}"
+            echo ""
+            """.replace("            ", "")
+        else: # Posix: colorize type to yellow
+            shortcut = fmt"""
+            stdout.write $({currentExpression})
+            stdout.write "\e[33m" # Yellow
+            stdout.write "  : "
+            stdout.write "{typeExpression}"
+            echo "\e[39m" # Reset color
+            """.replace("            ", "")
 
         buffer.writeLine(shortcut)
         buffer.flushFile()
@@ -183,6 +197,7 @@ proc showError(output: string) =
         previouslyIndented = false
 
 proc init(preload: string = nil) =
+    setControlCHook(controlCHook)
     bufferRestoreValidCode()
 
     if preload == nil:

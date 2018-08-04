@@ -1,6 +1,6 @@
 nimcache/
-inim
+src/inim
+src/inim.exe
 inim_*
-test
 temp.nim
 temp
