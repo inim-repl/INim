@@ -102,7 +102,7 @@ proc bufferRestoreValidCode() =
     buffer.flushFile()
 
 proc showError(output: string) =
-    # Runtime errors:
+    #### Runtime errors:
     if output.contains("Error: unhandled exception:"):
         stdout.setForegroundColor(fgRed, true)
         # Display only the relevant lines of the stack trace
@@ -113,7 +113,13 @@ proc showError(output: string) =
         stdout.flushFile()
         return
 
-    # Compilation errors:
+    #### Compilation errors:
+    var importStatement = false
+    try:
+        if currentExpression[0..6] == "import ":
+            importStatement = true
+    except IndexError:
+        discard
 
     # Prints only relevant message without file and line number info.
     # e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
@@ -121,8 +127,15 @@ proc showError(output: string) =
     let pos = output.find(")") + 2
     var message = output[pos..^1].strip
 
-    # Discarded error: shortcut to print values: inim> myvar
-    if currentExpression != "" and previouslyIndented == false and message.endsWith("discarded"):
+    # Discard shortcut conditions
+    let
+        a = currentExpression != ""
+        b = importStatement == false
+        c = previouslyIndented == false
+        d = message.endsWith("discarded")
+
+    # Discarded shortcut, print values: nim> myvar
+    if a and b and c and d:
         # Following lines grabs the type from the discarded expression:
         # Remove text bloat to result into: e.g. foo'int
         message = message.replace("Error: expression '")
@@ -155,7 +168,10 @@ proc showError(output: string) =
     # Display all other errors
     else:
         stdout.setForegroundColor(fgRed, true)
-        echo message
+        if importStatement:
+            echo output.strip() # Full message
+        else:
+            echo message # Shortened message
         stdout.resetAttributes()
         stdout.flushFile()
         previouslyIndented = false
