@@ -201,6 +201,8 @@ proc init(preload: string = nil) =
     # Compilation error
     else:
         bufferRestoreValidCode()
+        # Imports display more of the stack trace in case of errors, instead of one liners error
+        currentExpression = "import "  # Pretend it was an import for showError()
         showError(output)
         cleanExit(1)
 
