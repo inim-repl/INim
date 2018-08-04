@@ -27,7 +27,7 @@ proc compileCode():auto =
     result = execCmdEx(compileCmd)
 
 var
-    currentExpression: string # Last stdin to evaluate
+    currentExpression = "" # Last stdin to evaluate
     currentOutputLine = 0 # Last line shown from buffer's stdout
     validCode = "" # All statements compiled succesfully
     tempIndentCode = "" # Later append to `validCode` if whole block compiles well
@@ -60,12 +60,12 @@ proc welcomeScreen() =
     stdout.resetAttributes()
     stdout.flushFile()
 
-proc cleanExit() =
+proc cleanExit(exitCode = 0) =
     buffer.close()
     removeFile(bufferSource) # Temp .nim
     removeFile(bufferSource[0..^5]) # Temp binary, same filename just without ".nim"
     removeDir(getTempDir() & "nimcache")
-    quit(0)
+    quit(exitCode)
 
 proc getFileData(path: string): string =
     try:
@@ -78,10 +78,10 @@ proc compilationSuccess(current_statement, output: string) =
         validCode &= tempIndentCode
     else:
         validCode &= current_statement & "\n"
-    let lines = output.splitLines
     
     # Print only output you haven't seen
     stdout.setForegroundColor(fgCyan, true)
+    let lines = output.splitLines
     let new_lines = lines[currentOutputLine..^1]
     for index, line in new_lines:
         # Skip last empty line (otherwise blank line is displayed after command)
@@ -122,7 +122,7 @@ proc showError(output: string) =
     var message = output[pos..^1].strip
 
     # Discarded error: shortcut to print values: inim> myvar
-    if previouslyIndented == false and message.endsWith("discarded"):
+    if currentExpression != "" and previouslyIndented == false and message.endsWith("discarded"):
         # Following lines grabs the type from the discarded expression:
         # Remove text bloat to result into: e.g. foo'int
         message = message.replace("Error: expression '")
@@ -139,7 +139,7 @@ proc showError(output: string) =
         stdout.write "\e[33m" # Yellow
         stdout.write "  : "
         stdout.write "{typeExpression}"
-        stdout.writeLine "\e[39m" # Reset color
+        echo "\e[39m" # Reset color
         """.replace("        ", "")
 
         buffer.writeLine(shortcut)
@@ -170,15 +170,17 @@ proc init(preload: string = nil) =
 
     buffer.writeLine(preload)
     buffer.flushFile()
+
     # Check preloaded file compiles succesfully
     let (output, status) = compileCode()
     if status == 0:
         compilationSuccess(preload, output)
+
     # Compilation error
     else:
         bufferRestoreValidCode()
         showError(output)
-        return
+        cleanExit(1)
 
 proc getPromptSymbol(): string =
     if indentLevel == 0:
@@ -265,7 +267,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true) =
         doAssert(srcFile.fileExists, "cannot access " & srcFile)
         doAssert(srcFile.splitFile.ext == ".nim")
         let fileData = getFileData(srcFile)
-        init(fileData) # Preload code
+        init(fileData) # Preload code into init
     else:
         init() # Clean init
     
