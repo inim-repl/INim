@@ -102,18 +102,7 @@ proc bufferRestoreValidCode() =
     buffer.flushFile()
 
 proc showError(output: string) =
-    #### Runtime errors:
-    if output.contains("Error: unhandled exception:"):
-        stdout.setForegroundColor(fgRed, true)
-        # Display only the relevant lines of the stack trace
-        let lines = output.splitLines()
-        for line in lines[len(lines)-5 .. len(lines)-3]:
-            echo line
-        stdout.resetAttributes()
-        stdout.flushFile()
-        return
-
-    #### Compilation errors:
+    # Determine whether last expression was to import a module
     var importStatement = false
     try:
         if currentExpression[0..6] == "import ":
@@ -121,6 +110,23 @@ proc showError(output: string) =
     except IndexError:
         discard
 
+    #### Runtime errors:
+    if output.contains("Error: unhandled exception:"):
+        stdout.setForegroundColor(fgRed, true)
+        # Display only the relevant lines of the stack trace
+        let lines = output.splitLines()
+
+        if not importStatement:
+            echo lines[^3]
+        else:
+            for line in lines[len(lines)-5 .. len(lines)-3]:
+                echo line
+
+        stdout.resetAttributes()
+        stdout.flushFile()
+        return
+
+    #### Compilation errors:
     # Prints only relevant message without file and line number info.
     # e.g. "inim_1520787258.nim(2, 6) Error: undeclared identifier: 'foo'"
     # Becomes: "Error: undeclared identifier: 'foo'"
