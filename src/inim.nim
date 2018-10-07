@@ -313,9 +313,4 @@ proc main(nim = "nim", srcFile = "", showHeader = true) =
     runForever()
 
 when isMainModule:
-    import cligen
-    dispatch(main, help = {
-            "nim": "path to nim compiler",
-            "srcFile": "nim script to preload/run",
-            "showHeader": "show program info startup",
-        })
+    main()
