@@ -8,7 +8,7 @@ type App = ref object
     srcFile: string
     showHeader: bool
 
-var app:App
+var app: App
 
 const
     INimVersion = "0.4.1"
@@ -293,9 +293,17 @@ proc runForever() =
         # Clean up
         tempIndentCode = ""
 
+proc initApp*() =
+    ## Initialize the ``app` variable.
+    app.new()
+    app.nim = "nim"
+    app.srcFile = ""
+    app.showHeader = true
+
 proc main(nim = "nim", srcFile = "", showHeader = true) =
     ## inim interpreter
-    app.new()
+
+    initApp()
     app.nim=nim
     app.srcFile=srcFile
     app.showHeader=showHeader

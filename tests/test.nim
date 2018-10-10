@@ -1,5 +1,7 @@
 import inim
 
+# Initialize global var app; needed by getNimVersion.
+initApp()
 doAssert(getNimVersion()[0..2] == "Nim")
 
 doAssert(hasIndentTrigger("var") == true)
