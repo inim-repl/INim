@@ -13,10 +13,10 @@ var app:App
 const
     INimVersion = "0.4.1"
     indentSpaces = "    "
-    indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import", 
+    indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import",
                       "object", "enum"] # endsWith
     embeddedCode = staticRead("inimpkg/embedded.nim") # preloaded code into user's session
-    
+
 let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
@@ -76,14 +76,14 @@ proc getFileData(path: string): string =
     try:
         result = path.readFile()
     except:
-        result = nil
+        result = ""
 
 proc compilationSuccess(current_statement, output: string) =
     if len(tempIndentCode) > 0:
         validCode &= tempIndentCode
     else:
         validCode &= current_statement & "\n"
-    
+
     # Print only output you haven't seen
     stdout.setForegroundColor(fgCyan, true)
     let lines = output.splitLines
@@ -196,11 +196,11 @@ proc showError(output: string) =
         stdout.flushFile()
         previouslyIndented = false
 
-proc init(preload: string = nil) =
+proc init(preload = "") =
     setControlCHook(controlCHook)
     bufferRestoreValidCode()
 
-    if preload == nil:
+    if preload == "":
         # First dummy compilation so next one is faster for the user
         discard compileCode()
         return
@@ -309,7 +309,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true) =
         init(fileData) # Preload code into init
     else:
         init() # Clean init
-    
+
     runForever()
 
 when isMainModule:
