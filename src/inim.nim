@@ -241,7 +241,11 @@ proc runForever() =
     while true:
         # Read line
         try:
-            currentExpression = readLineFromStdin(getPromptSymbol()).strip
+            let result = readLineFromStdin(getPromptSymbol(), currentExpression)
+            if not result:
+                raise newException(EOFError, "Ctrl+D was pressed")
+        except EOFError:
+            cleanExit()
         except IOError:
             bufferRestoreValidCode()
             indentLevel = 0
