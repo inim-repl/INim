@@ -312,11 +312,10 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
     app.nim=nim
     app.srcFile=srcFile
     app.showHeader=showHeader
-    app.flags = #Parse our flags and join them with nim -d or return no flags
-        try:
-          " -d:" & join(@flags, " -d:")
-        except:
-          ""
+    if flags.len > 0:
+      app.flags = " -d:" & join(@flags, " -d:")
+    else:
+      app.flags = ""
 
     if app.showHeader: welcomeScreen()
 
