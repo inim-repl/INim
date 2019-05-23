@@ -252,9 +252,23 @@ proc runForever() =
             tempIndentCode = ""
             continue
 
+       
         # Special commands
         if currentExpression in ["exit", "exit()", "quit", "quit()"]:
             cleanExit()
+
+        if currentExpression in ["help", "help()"]:
+            compilationSuccess("", 
+            """
+            iNim - Interactive Nim Shell - By AndreiRegiani
+            
+            Available Commands: 
+            Quit - exit, exit(), quit, quit(), Ctrl+D
+            Help - help, help()
+            """
+            )
+            continue
+
 
         # Empty line: exit indent level, otherwise do nothing
         if currentExpression == "":
