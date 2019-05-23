@@ -287,7 +287,21 @@ proc runForever() =
         # Succesful compilation, expression is valid
         if status == 0:
             compilationSuccess(currentExpression, output)
+        #Maybe trying to echo value?
+        elif "has to be discarded" in output and indentLevel == 0: #
+            bufferRestoreValidCode()
 
+            buffer.writeLine("echo $" & currentExpression)
+            buffer.flushFile()
+
+            let (echo_output, echo_status) = compileCode()
+            if echo_status == 0:
+              compilationSuccess(currentExpression, echo_output)
+            else:
+              # Write back valid code to buffer
+              bufferRestoreValidCode()
+              indentLevel = 0
+              showError(output)
         # Compilation error
         else:
             # Write back valid code to buffer
