@@ -7,6 +7,7 @@ type App = ref object
     nim: string
     srcFile: string
     showHeader: bool
+    flags: string
 
 var app: App
 
@@ -23,7 +24,7 @@ let
 
 proc compileCode():auto =
     # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
-    let compileCmd = fmt"{app.nim} compile --run --verbosity=0 --hints=off --hint[source]=off --path=./ {bufferSource}"
+    let compileCmd = fmt"{app.nim} compile --run --verbosity=0{app.flags} --hints=off --hint[source]=off --path=./ {bufferSource}"
     result = execCmdEx(compileCmd)
 
 var
@@ -317,13 +318,17 @@ proc initApp*() =
     app.srcFile = ""
     app.showHeader = true
 
-proc main(nim = "nim", srcFile = "", showHeader = true) =
+proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]) =
     ## inim interpreter
 
     initApp()
     app.nim=nim
     app.srcFile=srcFile
     app.showHeader=showHeader
+    if flags.len > 0:
+      app.flags = " -d:" & join(@flags, " -d:")
+    else:
+      app.flags = ""
 
     if app.showHeader: welcomeScreen()
 
@@ -339,8 +344,9 @@ proc main(nim = "nim", srcFile = "", showHeader = true) =
 
 when isMainModule:
     import cligen
-    dispatch(main, help = {
+    dispatch(main, short = { "flags": 'd' }, help = {
             "nim": "path to nim compiler",
             "srcFile": "nim script to preload/run",
             "showHeader": "show program info startup",
+            "flags": "nim flags to pass to the compiler"
         })
