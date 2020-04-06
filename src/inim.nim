@@ -12,7 +12,7 @@ type App = ref object
 var app: App
 
 const
-    INimVersion = "0.4.2"
+    INimVersion = "0.4.3"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import",
                       "object", "RootObj", "enum"] # endsWith
