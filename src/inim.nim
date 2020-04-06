@@ -12,7 +12,7 @@ type App = ref object
 var app: App
 
 const
-    INimVersion = "0.4.1"
+    INimVersion = "0.4.2"
     indentSpaces = "    "
     indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import",
                       "object", "RootObj", "enum"] # endsWith
@@ -22,17 +22,17 @@ let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
 
-proc compileCode():auto =
+proc compileCode(): auto =
     # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
     let compileCmd = fmt"{app.nim} compile --run --verbosity=0{app.flags} --hints=off --hint[source]=off --path=./ {bufferSource}"
     result = execCmdEx(compileCmd)
 
 var
     currentExpression = "" # Last stdin to evaluate
-    currentOutputLine = 0 # Last line shown from buffer's stdout
-    validCode = "" # All statements compiled succesfully
-    tempIndentCode = "" # Later append to `validCode` if whole block compiles well
-    indentLevel = 0 # Current
+    currentOutputLine = 0  # Last line shown from buffer's stdout
+    validCode = ""         # All statements compiled succesfully
+    tempIndentCode = ""    # Later append to `validCode` if whole block compiles well
+    indentLevel = 0        # Current
     previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
     buffer: File
 
@@ -157,9 +157,9 @@ proc showError(output: string) =
         # To avoid char type conflict having single-quotes
         message[message.rfind("'")] = ';' # last single-quote
         let message_seq = message.split(";") # expression;type, e.g 'a';char
-        let typeExpression = message_seq[1] # type, e.g. char
+        let typeExpression = message_seq[1]                 # type, e.g. char
 
-        var shortcut:string
+        var shortcut: string
         when defined(Windows):
             shortcut = fmt"""
             stdout.write $({currentExpression})
@@ -218,7 +218,7 @@ proc init(preload = "") =
     else:
         bufferRestoreValidCode()
         # Imports display more of the stack trace in case of errors, instead of one liners error
-        currentExpression = "import "  # Pretend it was an import for showError()
+        currentExpression = "import " # Pretend it was an import for showError()
         showError(output)
         cleanExit(1)
 
@@ -227,7 +227,7 @@ proc getPromptSymbol(): string =
         result = "nim> "
         previouslyIndented = false
     else:
-        result =  ".... "
+        result = ".... "
     # Auto-indent (multi-level)
     result &= indentSpaces.repeat(indentLevel)
 
@@ -272,9 +272,11 @@ proc runForever() =
         if indentLevel != 0:
             # Skip indent for first line
             if currentExpression.hasIndentTrigger():
-                tempIndentCode &= indentSpaces.repeat(indentLevel-1) & currentExpression & "\n"
+                tempIndentCode &= indentSpaces.repeat(indentLevel-1) &
+                        currentExpression & "\n"
             else:
-                tempIndentCode &= indentSpaces.repeat(indentLevel) & currentExpression & "\n"
+                tempIndentCode &= indentSpaces.repeat(indentLevel) &
+                        currentExpression & "\n"
             continue
 
         # Compile buffer
@@ -322,13 +324,13 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
     ## inim interpreter
 
     initApp()
-    app.nim=nim
-    app.srcFile=srcFile
-    app.showHeader=showHeader
+    app.nim = nim
+    app.srcFile = srcFile
+    app.showHeader = showHeader
     if flags.len > 0:
-      app.flags = " -d:" & join(@flags, " -d:")
+        app.flags = " -d:" & join(@flags, " -d:")
     else:
-      app.flags = ""
+        app.flags = ""
 
     if app.showHeader: welcomeScreen()
 
@@ -344,7 +346,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
 
 when isMainModule:
     import cligen
-    dispatch(main, short = { "flags": 'd' }, help = {
+    dispatch(main, short = {"flags": 'd'}, help = {
             "nim": "path to nim compiler",
             "srcFile": "nim script to preload/run",
             "showHeader": "show program info startup",
