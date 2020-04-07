@@ -36,6 +36,14 @@ var
     previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
     buffer: File
 
+template outputFg(color: ForegroundColor, bright: bool = false, body: untyped): untyped =
+    ## Sets the foreground color for any writes to stdout in body and resets afterwards
+    stdout.setForegroundColor(color, bright)
+    body
+
+    stdout.resetAttributes()
+    stdout.flushFile()
+
 proc getNimVersion*(): string =
     let (output, status) = execCmdEx(fmt"{app.nim} --version")
     doAssert status == 0, fmt"make sure {app.nim} is in PATH"
@@ -53,15 +61,13 @@ proc getNimPath(): string =
     return "\n"
 
 proc welcomeScreen() =
-    stdout.setForegroundColor(fgYellow)
-    when defined(posix):
-        stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
-    stdout.writeLine "INim ", INimVersion
-    stdout.setForegroundColor(fgCyan)
-    stdout.write getNimVersion()
-    stdout.write getNimPath()
-    stdout.resetAttributes()
-    stdout.flushFile()
+    outputFg(fgYellow, false):
+        when defined(posix):
+            stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
+        stdout.writeLine "INim ", INimVersion
+        stdout.setForegroundColor(fgCyan)
+        stdout.write getNimVersion()
+        stdout.write getNimPath()
 
 proc cleanExit(exitCode = 0) =
     buffer.close()
@@ -86,18 +92,16 @@ proc compilationSuccess(current_statement, output: string) =
         validCode &= current_statement & "\n"
 
     # Print only output you haven't seen
-    stdout.setForegroundColor(fgCyan, true)
-    let lines = output.splitLines
-    let new_lines = lines[currentOutputLine..^1]
-    for index, line in new_lines:
-        # Skip last empty line (otherwise blank line is displayed after command)
-        if index+1 == len(new_lines) and line == "":
-            continue
-        echo line
+    outputFg(fgCyan, true):
+        let lines = output.splitLines
+        let new_lines = lines[currentOutputLine..^1]
+        for index, line in new_lines:
+            # Skip last empty line (otherwise blank line is displayed after command)
+            if index+1 == len(new_lines) and line == "":
+                continue
+            echo line
 
     currentOutputLine = len(lines)-1
-    stdout.resetAttributes()
-    stdout.flushFile()
 
 proc bufferRestoreValidCode() =
     if buffer != nil:
@@ -118,18 +122,15 @@ proc showError(output: string) =
 
     #### Runtime errors:
     if output.contains("Error: unhandled exception:"):
-        stdout.setForegroundColor(fgRed, true)
-        # Display only the relevant lines of the stack trace
-        let lines = output.splitLines()
+        outputFg(fgRed, true):
+            # Display only the relevant lines of the stack trace
+            let lines = output.splitLines()
 
-        if not importStatement:
-            echo lines[^3]
-        else:
-            for line in lines[len(lines)-5 .. len(lines)-3]:
-                echo line
-
-        stdout.resetAttributes()
-        stdout.flushFile()
+            if not importStatement:
+                echo lines[^3]
+            else:
+                for line in lines[len(lines)-5 .. len(lines)-3]:
+                    echo line
         return
 
     #### Compilation errors:
@@ -188,13 +189,11 @@ proc showError(output: string) =
 
     # Display all other errors
     else:
-        stdout.setForegroundColor(fgRed, true)
-        if importStatement:
-            echo output.strip() # Full message
-        else:
-            echo message # Shortened message
-        stdout.resetAttributes()
-        stdout.flushFile()
+        outputFg(fgRed, true):
+            if importStatement:
+                echo output.strip() # Full message
+            else:
+                echo message # Shortened message
         previouslyIndented = false
 
 proc init(preload = "") =
@@ -248,9 +247,23 @@ proc runForever() =
             tempIndentCode = ""
             continue
 
+
         # Special commands
         if currentExpression in ["exit", "exit()", "quit", "quit()"]:
             cleanExit()
+
+        if currentExpression in ["help", "help()"]:
+            outputFg(fgCyan, true):
+                echo("""
+                iNim - Interactive Nim Shell - By AndreiRegiani
+
+                Available Commands:
+                Quit - exit, exit(), quit, quit()
+                Help - help, help()
+                """
+                )
+            continue
+
 
         # Empty line: exit indent level, otherwise do nothing
         if currentExpression == "":
@@ -326,9 +339,9 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
     app.srcFile=srcFile
     app.showHeader=showHeader
     if flags.len > 0:
-      app.flags = " -d:" & join(@flags, " -d:")
+        app.flags = " -d:" & join(@flags, " -d:")
     else:
-      app.flags = ""
+        app.flags = ""
 
     if app.showHeader: welcomeScreen()
 
