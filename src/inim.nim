@@ -70,9 +70,6 @@ proc cleanExit(exitCode = 0) =
     removeDir(getTempDir() & "nimcache")
     quit(exitCode)
 
-proc controlCHook() {.noconv.} =
-    cleanExit(1)
-
 proc getFileData(path: string): string =
     try:
         result = path.readFile()
@@ -197,6 +194,19 @@ proc showError(output: string) =
         stdout.flushFile()
         previouslyIndented = false
 
+proc getPromptSymbol(): string =
+  if indentLevel == 0:
+    result = "nim> "
+    previouslyIndented = false
+  else:
+    result = ".... "
+    # Auto-indent (multi-level)
+    result &= indentSpaces.repeat(indentLevel)
+
+proc controlCHook() {.noconv.} =
+  stdout.write("\n" & getPromptSymbol())
+  stdout.flushFile()
+
 proc init(preload = "") =
     setControlCHook(controlCHook)
     bufferRestoreValidCode()
@@ -222,14 +232,6 @@ proc init(preload = "") =
         showError(output)
         cleanExit(1)
 
-proc getPromptSymbol(): string =
-    if indentLevel == 0:
-        result = "nim> "
-        previouslyIndented = false
-    else:
-        result = ".... "
-    # Auto-indent (multi-level)
-    result &= indentSpaces.repeat(indentLevel)
 
 proc hasIndentTrigger*(line: string): bool =
     if line.len > 0:
@@ -239,14 +241,14 @@ proc hasIndentTrigger*(line: string): bool =
 
 proc runForever() =
     while true:
+
         # Read line
         try:
-            currentExpression = readLineFromStdin(getPromptSymbol()).strip
-        except IOError:
-            bufferRestoreValidCode()
-            indentLevel = 0
-            tempIndentCode = ""
-            continue
+          stdout.write(getPromptSymbol())
+          stdout.flushFile()
+          currentExpression = stdin.readLine()
+        except EOFError as e:
+          cleanExit()
 
         # Special commands
         if currentExpression in ["exit", "exit()", "quit", "quit()"]:
