@@ -24,7 +24,10 @@ let
 
 proc compileCode(): auto =
     # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
-    let compileCmd = fmt"{app.nim} compile --run --verbosity=0{app.flags} --hints=off --hint[source]=off --path=./ {bufferSource}"
+    let compileCmd = [
+      app.nim, "compile", "--run", "--verbosity=0", 
+      app.flags, "--hints=off", "--hint[source]=off", "--path=./", bufferSource
+    ].join(" ")
     result = execCmdEx(compileCmd)
 
 var
