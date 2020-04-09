@@ -13,10 +13,15 @@ var app: App
 
 const
     INimVersion = "0.4.3"
-    indentSpaces = "    "
-    indentTriggers = [",", "=", ":", "var", "let", "const", "type", "import",
-                      "object", "RootObj", "enum"] # endsWith
-    embeddedCode = staticRead("inimpkg/embedded.nim") # preloaded code into user's session
+    IndentSpaces = "    "
+    # endsWith
+    IndentTriggers = [
+        ",", "=", ":", 
+        "var", "let", "const", "type", "import",
+        "object", "RootObj", "enum"
+    ]
+    # preloaded code into user's session
+    EmbeddedCode = staticRead("inimpkg/embedded.nim") 
 
 let
     uniquePrefix = epochTime().int
@@ -25,8 +30,8 @@ let
 proc compileCode(): auto =
     # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
     let compileCmd = [
-      app.nim, "compile", "--run", "--verbosity=0", 
-      app.flags, "--hints=off", "--hint[source]=off", "--path=./", bufferSource
+        app.nim, "compile", "--run", "--verbosity=0", app.flags, 
+        "--hints=off", "--hint[source]=off", "--path=./", bufferSource
     ].join(" ")
     result = execCmdEx(compileCmd)
 
@@ -103,7 +108,7 @@ proc bufferRestoreValidCode() =
     if buffer != nil:
         buffer.close()
     buffer = open(bufferSource, fmWrite)
-    buffer.writeLine(embeddedCode)
+    buffer.writeLine(EmbeddedCode)
     buffer.write(validCode)
     buffer.flushFile()
 
@@ -150,31 +155,32 @@ proc showError(output: string) =
     if a and b and c and d:
         # Following lines grabs the type from the discarded expression:
         # Remove text bloat to result into: e.g. foo'int
-        message = message.replace("Error: expression '")
-        message = message.replace(" is of type '")
-        message = message.replace("' and has to be discarded")
+        message = message.multiReplace({
+            "Error: expression '": "",
+            " is of type '": "",
+            "' and has to be discarded": ""
+        })
         # Make split char to be a semicolon instead of a single-quote,
         # To avoid char type conflict having single-quotes
         message[message.rfind("'")] = ';' # last single-quote
         let message_seq = message.split(";") # expression;type, e.g 'a';char
         let typeExpression = message_seq[1]                 # type, e.g. char
 
-        var shortcut: string
-        when defined(Windows):
-            shortcut = fmt"""
+        let shortcut = when defined(Windows):
+            fmt"""
             stdout.write $({currentExpression})
             stdout.write "  : "
             stdout.write "{typeExpression}"
             echo ""
-            """.replace("            ", "")
+            """.unindent()
         else: # Posix: colorize type to yellow
-            shortcut = fmt"""
+            fmt"""
             stdout.write $({currentExpression})
             stdout.write "\e[33m" # Yellow
             stdout.write "  : "
             stdout.write "{typeExpression}"
             echo "\e[39m" # Reset color
-            """.replace("            ", "")
+            """.unindent()
 
         buffer.writeLine(shortcut)
         buffer.flushFile()
@@ -229,12 +235,12 @@ proc getPromptSymbol(): string =
     else:
         result = ".... "
     # Auto-indent (multi-level)
-    result &= indentSpaces.repeat(indentLevel)
+    result &= IndentSpaces.repeat(indentLevel)
 
 proc hasIndentTrigger*(line: string): bool =
     if line.len == 0:
         return
-    for trigger in indentTriggers:
+    for trigger in IndentTriggers:
         if line.strip().endsWith(trigger):
             result = true
 
@@ -260,7 +266,7 @@ proc doRepl() =
             return
 
     # Write your line to buffer(temp) source code
-    buffer.writeLine(indentSpaces.repeat(indentLevel) & currentExpression)
+    buffer.writeLine(IndentSpaces.repeat(indentLevel) & currentExpression)
     buffer.flushFile()
 
     # Check for indent and trigger it
@@ -272,7 +278,7 @@ proc doRepl() =
     if indentLevel != 0:
         # Skip indent for first line
         let n = if currentExpression.hasIndentTrigger(): 1 else: 0
-        tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
+        tempIndentCode &= IndentSpaces.repeat(indentLevel-n) &
             currentExpression & "\n"
         return
 
