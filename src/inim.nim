@@ -46,10 +46,10 @@ proc getNimVersion*(): string =
 
 proc getNimPath(): string =
     # TODO: use `which` PENDING https://github.com/nim-lang/Nim/issues/8311
-    when defined(Windows):
-        let which_cmd = fmt"where {app.nim}"
+    let whichCmd = when defined(Windows):
+        fmt"where {app.nim}"
     else:
-        let which_cmd = fmt"which {app.nim}"
+        fmt"which {app.nim}"
     let (output, status) = execCmdEx(which_cmd)
     if status == 0:
         return " at " & output
@@ -77,10 +77,7 @@ proc controlCHook() {.noconv.} =
     cleanExit(1)
 
 proc getFileData(path: string): string =
-    try:
-        result = path.readFile()
-    except:
-        result = ""
+    try: path.readFile() except: ""
 
 proc compilationSuccess(current_statement, output: string) =
     if len(tempIndentCode) > 0:
@@ -192,10 +189,10 @@ proc showError(output: string) =
     # Display all other errors
     else:
         stdout.setForegroundColor(fgRed, true)
-        if importStatement:
-            echo output.strip() # Full message
+        echo if importStatement:
+            output.strip() # Full message
         else:
-            echo message # Shortened message
+            message # Shortened message
         stdout.resetAttributes()
         stdout.flushFile()
         previouslyIndented = false
@@ -274,12 +271,9 @@ proc runForever() =
         # Don't run yet if still on indent
         if indentLevel != 0:
             # Skip indent for first line
-            if currentExpression.hasIndentTrigger():
-                tempIndentCode &= indentSpaces.repeat(indentLevel-1) &
-                        currentExpression & "\n"
-            else:
-                tempIndentCode &= indentSpaces.repeat(indentLevel) &
-                        currentExpression & "\n"
+            let n = if currentExpression.hasIndentTrigger(): 1 else: 0
+            tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
+                currentExpression & "\n"
             continue
 
         # Compile buffer
