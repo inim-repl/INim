@@ -232,102 +232,99 @@ proc getPromptSymbol(): string =
     result &= indentSpaces.repeat(indentLevel)
 
 proc hasIndentTrigger*(line: string): bool =
-    if line.len > 0:
-        for trigger in indentTriggers:
-            if line.strip().endsWith(trigger):
-                result = true
+    if line.len == 0:
+        return
+    for trigger in indentTriggers:
+        if line.strip().endsWith(trigger):
+            result = true
 
-proc runForever() =
-    while true:
-        # Read line
-        try:
-            currentExpression = readLineFromStdin(getPromptSymbol()).strip
-        except IOError:
-            bufferRestoreValidCode()
-            indentLevel = 0
-            tempIndentCode = ""
-            continue
+proc doRepl() =
+    # Read line
+    try:
+        currentExpression = readLineFromStdin(getPromptSymbol()).strip
+    except IOError:
+        bufferRestoreValidCode()
+        indentLevel = 0
+        tempIndentCode = ""
+        return
 
-        # Special commands
-        if currentExpression in ["exit", "exit()", "quit", "quit()"]:
-            cleanExit()
+    # Special commands
+    if currentExpression in ["exit", "exit()", "quit", "quit()"]:
+        cleanExit()
 
-        # Empty line: exit indent level, otherwise do nothing
-        if currentExpression == "":
-            if indentLevel > 0:
-                indentLevel -= 1
-            elif indentLevel == 0:
-                continue
+    # Empty line: exit indent level, otherwise do nothing
+    if currentExpression == "":
+        if indentLevel > 0:
+            indentLevel -= 1
+        elif indentLevel == 0:
+            return
 
-        # Write your line to buffer(temp) source code
-        buffer.writeLine(indentSpaces.repeat(indentLevel) & currentExpression)
+    # Write your line to buffer(temp) source code
+    buffer.writeLine(indentSpaces.repeat(indentLevel) & currentExpression)
+    buffer.flushFile()
+
+    # Check for indent and trigger it
+    if currentExpression.hasIndentTrigger():
+        indentLevel += 1
+        previouslyIndented = true
+
+    # Don't run yet if still on indent
+    if indentLevel != 0:
+        # Skip indent for first line
+        let n = if currentExpression.hasIndentTrigger(): 1 else: 0
+        tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
+            currentExpression & "\n"
+        return
+
+    # Compile buffer
+    let (output, status) = compileCode()
+
+    # Succesful compilation, expression is valid
+    if status == 0:
+        compilationSuccess(currentExpression, output)
+    # Maybe trying to echo value?
+    elif "has to be discarded" in output and indentLevel == 0: #
+        bufferRestoreValidCode()
+
+        # Save the current expression as an echo
+        currentExpression = "echo $" & currentExpression
+        buffer.writeLine(currentExpression)
         buffer.flushFile()
 
-        # Check for indent and trigger it
-        if currentExpression.hasIndentTrigger():
-            indentLevel += 1
-            previouslyIndented = true
-
-        # Don't run yet if still on indent
-        if indentLevel != 0:
-            # Skip indent for first line
-            let n = if currentExpression.hasIndentTrigger(): 1 else: 0
-            tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
-                currentExpression & "\n"
-            continue
-
-        # Compile buffer
-        let (output, status) = compileCode()
-
-        # Succesful compilation, expression is valid
-        if status == 0:
-            compilationSuccess(currentExpression, output)
-        # Maybe trying to echo value?
-        elif "has to be discarded" in output and indentLevel == 0: #
-            bufferRestoreValidCode()
-
-            # Save the current expression as an echo
-            currentExpression = "echo $" & currentExpression
-            buffer.writeLine(currentExpression)
-            buffer.flushFile()
-
-            let (echo_output, echo_status) = compileCode()
-            if echo_status == 0:
-                compilationSuccess(currentExpression, echo_output)
-            else:
-                # Show any errors in echoing the statement
-                indentLevel = 0
-                showError(echo_output)
-            # Roll back to not include the temporary echo line
-            bufferRestoreValidCode()
-        # Compilation error
+        let (echo_output, echo_status) = compileCode()
+        if echo_status == 0:
+            compilationSuccess(currentExpression, echo_output)
         else:
-            # Write back valid code to buffer
-            bufferRestoreValidCode()
+            # Show any errors in echoing the statement
             indentLevel = 0
-            showError(output)
+            showError(echo_output)
+        # Roll back to not include the temporary echo line
+        bufferRestoreValidCode()
+    # Compilation error
+    else:
+        # Write back valid code to buffer
+        bufferRestoreValidCode()
+        indentLevel = 0
+        showError(output)
 
-        # Clean up
-        tempIndentCode = ""
+    # Clean up
+    tempIndentCode = ""
 
-proc initApp*() =
+proc initApp*(nim, srcFile: string, showHeader: bool, flags = "") =
     ## Initialize the ``app` variable.
-    app.new()
-    app.nim = "nim"
-    app.srcFile = ""
-    app.showHeader = true
+    app = App(
+        nim: nim,
+        srcFile: srcFile,
+        showHeader: showHeader,
+        flags: flags
+    )
 
 proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]) =
     ## inim interpreter
 
-    initApp()
-    app.nim = nim
-    app.srcFile = srcFile
-    app.showHeader = showHeader
+    initApp(nim, srcFile, showHeader)
     if flags.len > 0:
         app.flags = " -d:" & join(@flags, " -d:")
-    else:
-        app.flags = ""
 
     if app.showHeader: welcomeScreen()
 
@@ -338,8 +335,9 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
         init(fileData) # Preload code into init
     else:
         init() # Clean init
-
-    runForever()
+    
+    while true:
+        doRepl()
 
 when isMainModule:
     import cligen
