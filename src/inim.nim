@@ -287,7 +287,7 @@ proc doRepl() =
         bufferRestoreValidCode()
 
         # Save the current expression as an echo
-        currentExpression = "echo $" & currentExpression
+        currentExpression = fmt"echo $({currentExpression})"
         buffer.writeLine(currentExpression)
         buffer.flushFile()
 
