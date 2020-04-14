@@ -1,0 +1,22 @@
+name: Crystal CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: nimlang/nim
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: nimble build
+    - name: Run tests
+      run: nimble test
