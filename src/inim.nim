@@ -1,7 +1,8 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
 
-import os, osproc, rdstdin, strformat, strutils, terminal, times, strformat
+import os, osproc, strformat, strutils, terminal, times, strformat, streams
+import noise
 
 type App = ref object
     nim: string
@@ -35,6 +36,8 @@ proc compileCode(): auto =
     ].join(" ")
     result = execCmdEx(compileCmd)
 
+proc getPromptSymbol(): Styler
+
 var
     currentExpression = "" # Last stdin to evaluate
     currentOutputLine = 0  # Last line shown from buffer's stdout
@@ -43,6 +46,16 @@ var
     indentLevel = 0        # Current
     previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
     buffer: File
+    noiser = Noise.init()
+
+when promptHistory:
+    # When prompt history is enabled, we want to load history
+    # TODO: Config to allow per-session history
+    var historyFile =  getConfigDir() / "inim"
+    discard existsorCreateDir(historyFile)
+    historyFile = historyFile / ".history"
+    discard noiser.historyLoad(historyFile)
+
 
 template outputFg(color: ForegroundColor, bright: bool = false, body: untyped): untyped =
     ## Sets the foreground color for any writes to stdout in body and resets afterwards
@@ -82,10 +95,10 @@ proc cleanExit(exitCode = 0) =
     removeFile(bufferSource) # Temp .nim
     removeFile(bufferSource[0..^5]) # Temp binary, same filename just without ".nim"
     removeDir(getTempDir() & "nimcache")
+    when promptHistory:
+        # Save our history
+        discard noiser.historySave(historyFile)
     quit(exitCode)
-
-proc controlCHook() {.noconv.} =
-    cleanExit(1)
 
 proc getFileData(path: string): string =
     try: path.readFile() except: ""
@@ -202,8 +215,18 @@ proc showError(output: string) =
               message # Shortened message
         previouslyIndented = false
 
+proc getPromptSymbol(): Styler =
+    var prompt = ""
+    if indentLevel == 0:
+        prompt = "nim> "
+        previouslyIndented = false
+    else:
+        prompt =  ".... "
+    # Auto-indent (multi-level)
+    prompt &= IndentSpaces.repeat(indentLevel)
+    result = Styler.init(prompt)
+
 proc init(preload = "") =
-    setControlCHook(controlCHook)
     bufferRestoreValidCode()
 
     if preload == "":
@@ -227,15 +250,6 @@ proc init(preload = "") =
         showError(output)
         cleanExit(1)
 
-proc getPromptSymbol(): string =
-    if indentLevel == 0:
-        result = "nim> "
-        previouslyIndented = false
-    else:
-        result = ".... "
-    # Auto-indent (multi-level)
-    result &= IndentSpaces.repeat(indentLevel)
-
 proc hasIndentTrigger*(line: string): bool =
     if line.len == 0:
         return
@@ -245,13 +259,21 @@ proc hasIndentTrigger*(line: string): bool =
 
 proc doRepl() =
     # Read line
-    try:
-        currentExpression = readLineFromStdin(getPromptSymbol()).strip
-    except IOError:
-        bufferRestoreValidCode()
-        indentLevel = 0
-        tempIndentCode = ""
-        return
+    let ok = noiser.readLine()
+    if not ok:
+        case noiser.getKeyType():
+        of ktCtrlC:
+            bufferRestoreValidCode()
+            indentLevel = 0
+            tempIndentCode = ""
+            return
+        of ktCtrlD:
+            echo "\nQuitting INim: Goodbye!"
+            cleanExit()
+        else:
+            return
+
+    currentExpression = noiser.getLine
 
     # Special commands
     if currentExpression in ["exit", "exit()", "quit", "quit()"]:
@@ -291,10 +313,18 @@ Help - help, help()
         let n = if currentExpression.hasIndentTrigger(): 1 else: 0
         tempIndentCode &= IndentSpaces.repeat(indentLevel-n) &
             currentExpression & "\n"
+        when promptHistory:
+            # Add in indents to our history
+            if tempIndentCode.len > 0:
+                noiser.historyAdd(IndentSpaces.repeat(indentLevel-n) & currentExpression)
         return
 
     # Compile buffer
     let (output, status) = compileCode()
+
+    when promptHistory:
+        if currentExpression.len > 0:
+            noiser.historyAdd(currentExpression)
 
     # Succesful compilation, expression is valid
     if status == 0:
@@ -354,6 +384,9 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
         init() # Clean init
 
     while true:
+        let prompt = getPromptSymbol()
+        noiser.setPrompt(prompt)
+
         doRepl()
 
 when isMainModule:
