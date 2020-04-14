@@ -278,18 +278,15 @@ proc doRepl() =
     # Special commands
     if currentExpression in ["exit", "exit()", "quit", "quit()"]:
         cleanExit()
-
-      if currentExpression in ["help", "help()"]:
-          outputFg(fgCyan, true):
-              echo("""
+    elif currentExpression in ["help", "help()"]:
+        outputFg(fgCyan, true):
+            echo("""
 iNim - Interactive Nim Shell - By AndreiRegiani
 
 Available Commands:
 Quit - exit, exit(), quit, quit(), ctrl+d
-Help - help, help()
-              """
-              )
-          continue
+Help - help, help()""")
+        return
 
     # Empty line: exit indent level, otherwise do nothing
     if currentExpression == "":
