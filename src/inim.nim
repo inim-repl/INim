@@ -13,7 +13,7 @@ type App = ref object
 var app: App
 
 const
-    INimVersion = "0.4.4"
+    INimVersion = "0.4.5"
     IndentSpaces = "    "
     # endsWith
     IndentTriggers = [
