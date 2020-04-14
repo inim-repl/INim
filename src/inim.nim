@@ -227,16 +227,7 @@ proc getPromptSymbol(): Styler =
     prompt &= IndentSpaces.repeat(indentLevel)
     result = Styler.init(prompt)
 
-proc hasIndentTrigger*(line: string): bool =
-    if line.len > 0:
-        for trigger in IndentTriggers:
-            if line.strip().endsWith(trigger):
-                result = true
-
 proc init(preload = "") =
-    let prompt = getPromptSymbol()
-
-    noiser.setPrompt(prompt)
     bufferRestoreValidCode()
 
     if preload == "":
@@ -276,12 +267,12 @@ proc doRepl() =
             bufferRestoreValidCode()
             indentLevel = 0
             tempIndentCode = ""
-            continue
+            return
         of ktCtrlD:
             echo "\nQuitting INim: Goodbye!"
             cleanExit()
         else:
-            continue
+            return
 
     currentExpression = noiser.getLine
 
@@ -382,8 +373,10 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
         init() # Clean init
 
     while true:
-        doRepl()
+        let prompt = getPromptSymbol()
+        noiser.setPrompt(prompt)
 
+        doRepl()
 
 when isMainModule:
     import cligen
