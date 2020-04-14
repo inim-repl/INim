@@ -18,7 +18,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Update nimble
       run: nimble update
-    - name: Install dependencies
+    - name: Build INim
       run: nimble build
     - name: Run tests
       run: nimble test
