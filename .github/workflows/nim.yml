@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Update nimble
+      run: nimble update
     - name: Install dependencies
       run: nimble build
     - name: Run tests
