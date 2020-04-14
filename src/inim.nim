@@ -255,11 +255,11 @@ proc runForever() =
         if currentExpression in ["help", "help()"]:
             outputFg(fgCyan, true):
                 echo("""
-                iNim - Interactive Nim Shell - By AndreiRegiani
+iNim - Interactive Nim Shell - By AndreiRegiani
 
-                Available Commands:
-                Quit - exit, exit(), quit, quit()
-                Help - help, help()
+Available Commands:
+Quit - exit, exit(), quit, quit(), ctrl+d
+Help - help, help()
                 """
                 )
             continue
