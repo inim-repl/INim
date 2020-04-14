@@ -21,4 +21,4 @@ jobs:
     - name: Build INim
       run: nimble build
     - name: Run tests
-      run: nimble test
+      run: nimble test -d:prompt_no_history
