@@ -1,4 +1,4 @@
-name: Crystal CI
+name: Nim CI
 
 on:
   push:
