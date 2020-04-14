@@ -1,8 +1,7 @@
 import inim
 
 # Initialize global var app; needed by getNimVersion.
-# commented out to hotfix breaking tests
-#initApp()
+initApp("nim", "", true)
 #doAssert(getNimVersion()[0..2] == "Nim")
 
 doAssert(hasIndentTrigger("var") == true)
