@@ -1,4 +1,4 @@
-# INim: Interactive Nim Shell [![nimble](https://raw.githubusercontent.com/yglukhov/nimble-tag/master/nimble.png)](https://github.com/yglukhov/nimble-tag)
+# INim: Interactive Nim Shell [![nimble](https://raw.githubusercontent.com/yglukhov/nimble-tag/master/nimble.png)](https://github.com/yglukhov/nimble-tag) ![Nim CI](https://github.com/inim-repl/INim/workflows/Nim%20CI/badge.svg)
 
 `$ nimble install inim`
 
