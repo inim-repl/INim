@@ -21,7 +21,7 @@ Config is saved and loaded from `configDir / inim`.
 
 Currently, the config allows you to set two options:
 * Style
-  * Set prompt string (default: true)
+  * Set prompt string (default: "inim> ")
 * History
   * persistent history (default: true)
 
