@@ -1,7 +1,7 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
 
-import os, osproc, strformat, strutils, terminal, times, strformat, streams
+import os, osproc, strformat, strutils, terminal, times, strformat, streams, parsecfg
 import noise
 
 type App = ref object
@@ -10,7 +10,9 @@ type App = ref object
     showHeader: bool
     flags: string
 
-var app: App
+var
+  app: App
+  config: Config
 
 const
     INimVersion = "0.4.5"
@@ -23,10 +25,23 @@ const
     ]
     # preloaded code into user's session
     EmbeddedCode = staticRead("inimpkg/embedded.nim")
+    ConfigDir = getConfigDir() / "inim"
+    RcFilePath = ConfigDir / "inimrc"
+
+proc createRcFile(): Config =
+    ## Create a new rc file with default sections populated
+    result = newConfig()
+    result.setSectionKey("History", "persistent", "True")
+    result.setSectionKey("Style", "prompt", "nim> ")
+    result.writeConfig(RcFilePath)
+
+config = if not existsorCreateDir(ConfigDir) or not existsFile(RcFilePath): createRcFile()
+         else: loadConfig(RcFilePath)
 
 let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
+    tmpHistory = getTempDir() & "inim_" & $uniquePrefix & ".history"
 
 proc compileCode(): auto =
     # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
@@ -50,10 +65,8 @@ var
 
 when promptHistory:
     # When prompt history is enabled, we want to load history
-    # TODO: Config to allow per-session history
-    var historyFile =  getConfigDir() / "inim"
-    discard existsorCreateDir(historyFile)
-    historyFile = historyFile / ".history"
+    var historyFile = if config.getSectionValue("History", "persistent") == "True": ConfigDir / "history"
+                      else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
 
@@ -94,6 +107,7 @@ proc cleanExit(exitCode = 0) =
     buffer.close()
     removeFile(bufferSource) # Temp .nim
     removeFile(bufferSource[0..^5]) # Temp binary, same filename just without ".nim"
+    removeFile(tmpHistory)
     removeDir(getTempDir() & "nimcache")
     when promptHistory:
         # Save our history
@@ -218,7 +232,7 @@ proc showError(output: string) =
 proc getPromptSymbol(): Styler =
     var prompt = ""
     if indentLevel == 0:
-        prompt = "nim> "
+        prompt = config.getSectionValue("Style", "prompt")
         previouslyIndented = false
     else:
         prompt =  ".... "
@@ -363,7 +377,8 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "") =
         flags: flags
     )
 
-proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]) =
+proc main(nim = "nim", srcFile = "", showHeader = true,
+          flags: seq[string] = @[], createRcFile = false) =
     ## inim interpreter
 
     initApp(nim, srcFile, showHeader)
@@ -371,6 +386,9 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
         app.flags = " -d:" & join(@flags, " -d:")
 
     if app.showHeader: welcomeScreen()
+
+    if createRcFile:
+        config = createRcFile()
 
     if srcFile.len > 0:
         doAssert(srcFile.fileExists, "cannot access " & srcFile)
@@ -392,5 +410,6 @@ when isMainModule:
             "nim": "path to nim compiler",
             "srcFile": "nim script to preload/run",
             "showHeader": "show program info startup",
-            "flags": "nim flags to pass to the compiler"
+            "flags": "nim flags to pass to the compiler",
+            "createRcFile": "force create an inimrc file. Overrides current inimrc file"
         })
