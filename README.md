@@ -14,5 +14,16 @@
 * Preload existing source code (access to non-exported* symbols): `inim -s example.nim`
 * Colorized output
 
+## Config
+Config is saved and loaded from `configDir / inim`.
+* On Windows, this is %APPDATA%\inim
+* On Linux, this is /home/<user>/.config/inim
+
+Currently, the config allows you to set two options:
+* Style
+  * Set prompt string (default: true)
+* History
+  * persistent history (default: true)
+
 ## Contributing
 Pull requests and suggestions are welcome.
