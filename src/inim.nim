@@ -26,7 +26,7 @@ const
     # preloaded code into user's session
     EmbeddedCode = staticRead("inimpkg/embedded.nim")
     ConfigDir = getConfigDir() / "inim"
-    RcFilePath = ConfigDir / "inimrc"
+    RcFilePath = ConfigDir / "inim.ini"
 
 proc createRcFile(): Config =
     ## Create a new rc file with default sections populated
@@ -41,7 +41,7 @@ config = if not existsorCreateDir(ConfigDir) or not existsFile(RcFilePath): crea
 let
     uniquePrefix = epochTime().int
     bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
-    tmpHistory = getTempDir() & "inim_" & $uniquePrefix & ".history"
+    tmpHistory = getTempDir() & "inim_history_" & $uniquePrefix & ".nim"
 
 proc compileCode(): auto =
     # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
@@ -65,7 +65,7 @@ var
 
 when promptHistory:
     # When prompt history is enabled, we want to load history
-    var historyFile = if config.getSectionValue("History", "persistent") == "True": ConfigDir / "history"
+    var historyFile = if config.getSectionValue("History", "persistent") == "True": ConfigDir / "history.nim"
                       else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
