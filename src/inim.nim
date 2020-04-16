@@ -1,7 +1,7 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
 
-import os, osproc, strformat, strutils, terminal, times, strformat, streams
+import os, osproc, strformat, strutils, terminal, times, strformat
 import noise
 
 type App = ref object
@@ -119,7 +119,13 @@ proc compilationSuccess(current_statement, output: string) =
                 continue
             echo line
 
-    currentOutputLine = len(lines)-1
+    # Roll back our valid code to not include the echo
+    if current_statement.contains("echo"):
+      let newOffset = current_statement.len + 1
+      validCode = validCode[0 ..< ^newOffset]
+    else:
+      # Or commit the line
+      currentOutputLine = len(lines)-1
 
 proc bufferRestoreValidCode() =
     if buffer != nil:
@@ -326,6 +332,9 @@ Help - help, help()""")
     # Succesful compilation, expression is valid
     if status == 0:
         compilationSuccess(currentExpression, output)
+        if "echo" in currentExpression:
+          # Roll back echoes
+          bufferRestoreValidCode()
     # Maybe trying to echo value?
     elif "has to be discarded" in output and indentLevel == 0: #
         bufferRestoreValidCode()
@@ -342,6 +351,7 @@ Help - help, help()""")
             # Show any errors in echoing the statement
             indentLevel = 0
             showError(echo_output)
+
         # Roll back to not include the temporary echo line
         bufferRestoreValidCode()
     # Compilation error
@@ -387,6 +397,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true, flags: seq[string] = @[]
         doRepl()
 
 when isMainModule:
+  when not defined(TEST):
     import cligen
     dispatch(main, short = {"flags": 'd'}, help = {
             "nim": "path to nim compiler",
