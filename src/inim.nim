@@ -103,7 +103,9 @@ proc cleanExit(exitCode = 0) =
 proc getFileData(path: string): string =
     try: path.readFile() except: ""
 
-proc compilationSuccess(current_statement, output: string) =
+proc compilationSuccess(current_statement, output: string, commit = true) =
+    ## Add our line to valid code
+    ## If we don't commit, roll back validCode if we've entered an echo
     if len(tempIndentCode) > 0:
         validCode &= tempIndentCode
     else:
@@ -120,12 +122,12 @@ proc compilationSuccess(current_statement, output: string) =
             echo line
 
     # Roll back our valid code to not include the echo
-    if current_statement.contains("echo"):
-      let newOffset = current_statement.len + 1
-      validCode = validCode[0 ..< ^newOffset]
+    if current_statement.contains("echo") and not commit:
+        let newOffset = current_statement.len + 1
+        validCode = validCode[0 ..< ^newOffset]
     else:
-      # Or commit the line
-      currentOutputLine = len(lines)-1
+        # Or commit the line
+        currentOutputLine = len(lines)-1
 
 proc bufferRestoreValidCode() =
     if buffer != nil:
@@ -346,7 +348,7 @@ Help - help, help()""")
 
         let (echo_output, echo_status) = compileCode()
         if echo_status == 0:
-            compilationSuccess(currentExpression, echo_output)
+            compilationSuccess(currentExpression, echo_output, commit = false)
         else:
             # Show any errors in echoing the statement
             indentLevel = 0
