@@ -3,6 +3,7 @@
 
 import os, osproc, strformat, strutils, terminal, times, strformat, parsecfg
 import noise
+import asyncdispatch, jester, os, strutils
 
 type App = ref object
     nim: string
@@ -368,6 +369,14 @@ Help - help, help()""")
     # Clean up
     tempIndentCode = ""
 
+proc runServer(): auto =
+  router myrouter:
+    get "/":
+      resp "It's alive!"
+
+  var jester = myrouter.initJester
+  jester.serve()
+
 proc initApp*(nim, srcFile: string, showHeader: bool, flags = "") =
     ## Initialize the ``app` variable.
     app = App(
@@ -378,7 +387,7 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "") =
     )
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
-          flags: seq[string] = @[], createRcFile = false) =
+          flags: seq[string] = @[], createRcFile = false, play=false) =
     ## inim interpreter
 
     initApp(nim, srcFile, showHeader)
@@ -389,7 +398,8 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
 
     if createRcFile:
         config = createRcFile()
-
+    if play:
+      runServer()
     if srcFile.len > 0:
         doAssert(srcFile.fileExists, "cannot access " & srcFile)
         doAssert(srcFile.splitFile.ext == ".nim")
@@ -411,5 +421,6 @@ when isMainModule:
             "srcFile": "nim script to preload/run",
             "showHeader": "show program info startup",
             "flags": "nim flags to pass to the compiler",
-            "createRcFile": "force create an inimrc file. Overrides current inimrc file"
+            "createRcFile": "force create an inimrc file. Overrides current inimrc file",
+            "play": "launch inim web ui for current project"
         })
