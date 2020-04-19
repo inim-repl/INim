@@ -13,3 +13,5 @@ requires "nim >= 1.0.0"
 requires "cligen >= 0.9.15"
 requires "noise"
 
+task test, "Run tests":
+  exec "nim c -r -d:prompt_no_history tests/test.nim"
