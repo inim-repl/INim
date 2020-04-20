@@ -1,4 +1,4 @@
-import os, times, osproc, strutils
+import os, times, osproc, strutils, htmlgen
 
 
 proc compileAndRunFile(path: string): auto =
@@ -22,4 +22,14 @@ proc runCode*(code: string): tuple[output: TaintedString, exitCode: int] =
   buffer.write(code)
   buffer.flushFile()
   return compileAndRunFile(path)
+
+
+func replForm*(input, output: string): string =
+  html(head(style(".body{font-face: monospace;}")),
+    body(
+      form(action="/", `method`="post",
+        textarea(name="inimplayrepl", input),
+        br(),
+        input(type="submit", value="run")),
+      span(output)))
 

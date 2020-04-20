@@ -3,7 +3,12 @@
 
 import os, osproc, strformat, strutils, terminal, times, strformat, parsecfg
 import noise
-import asyncdispatch, jester, os, strutils
+import asyncdispatch, jester, os, strutils, json, uri, logging
+
+import utils
+
+var logger = newConsoleLogger()
+addHandler(logger)
 
 type App = ref object
     nim: string
@@ -369,13 +374,20 @@ Help - help, help()""")
     # Clean up
     tempIndentCode = ""
 
+
 proc runServer(): auto =
   router myrouter:
     get "/":
-      resp "It's alive!"
+      resp replForm("this is input", "this is output")
+    post "/":
+      let input = request.body.decodeUrl.split("inimplayrepl=")[1]
+      debug("Running:\n", input)
+      let output = input.runCode[0]
+      resp replForm(input, output.replace("\n", "<br/>"))
 
   var jester = myrouter.initJester
   jester.serve()
+
 
 proc initApp*(nim, srcFile: string, showHeader: bool, flags = "") =
     ## Initialize the ``app` variable.
