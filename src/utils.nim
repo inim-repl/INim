@@ -25,7 +25,8 @@ proc runCode*(code: string): tuple[output: TaintedString, exitCode: int] =
 
 
 func replForm*(input, output: string): string =
-  html(head(style(".body{font-face: monospace;}")),
+  html(head(style("body {font-family: monospace;}"),
+            script(src="js/turbolinks.js")),
     body(
       form(action="/", `method`="post",
         textarea(name="inimplayrepl", input),

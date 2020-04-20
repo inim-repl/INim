@@ -378,12 +378,15 @@ Help - help, help()""")
 proc runServer(): auto =
   router myrouter:
     get "/":
-      resp replForm("this is input", "this is output")
+      resp replForm("echo \"hello world\"", "Press RUN to run code")
     post "/":
       let input = request.body.decodeUrl.split("inimplayrepl=")[1]
       debug("Running:\n", input)
       let output = input.runCode[0]
       resp replForm(input, output.replace("\n", "<br/>"))
+    get "/js/turbolinks.js":
+      const turbolinks = staticRead "../js/turbolinks.js"
+      resp turbolinks
 
   var jester = myrouter.initJester
   jester.serve()
