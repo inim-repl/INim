@@ -17,7 +17,7 @@ var
 
 const
   INimVersion = "0.4.5"
-  IndentSpaces = "    "
+  IndentSpaces = "  "
   # endsWith
   IndentTriggers = [
       ",", "=", ":",
@@ -34,6 +34,7 @@ proc createRcFile(path: string): Config =
   result = newConfig()
   result.setSectionKey("History", "persistent", "True")
   result.setSectionKey("Style", "prompt", "nim> ")
+  result.setSectionKey("Style", "showTypes", "True")
   result.writeConfig(path)
 
 let
@@ -349,21 +350,36 @@ Help - help, help()""")
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
-    currentExpression = fmt"echo $({currentExpression})"
+    currentExpression = if config.getSectionValue("Style", "showTypes") == "True":
+        fmt"""echo $({currentExpression}) & " == " & "type " & $(type({currentExpression}))"""
+      else:
+        fmt"""echo $({currentExpression})"""
     buffer.writeLine(currentExpression)
     buffer.flushFile()
 
+    # Don't run yet if still on indent
+    if indentLevel != 0:
+      # Skip indent for first line
+      let n = if currentExpression.hasIndentTrigger(): 1 else: 0
+      tempIndentCode &= IndentSpaces.repeat(indentLevel-n) &
+        currentExpression & "\n"
+      when promptHistory:
+        # Add in indents to our history
+        if tempIndentCode.len > 0:
+          noiser.historyAdd(IndentSpaces.repeat(indentLevel-n) & currentExpression)
+
     let (echo_output, echo_status) = compileCode()
     if echo_status == 0:
-      compilationSuccess(currentExpression, echo_output, commit = false)
+      compilationSuccess(currentExpression, echo_output)
     else:
       # Show any errors in echoing the statement
       indentLevel = 0
       showError(echo_output)
+      # Roll back to not include the temporary echo line
+      bufferRestoreValidCode()
 
     # Roll back to not include the temporary echo line
     bufferRestoreValidCode()
-  # Compilation error
   else:
     # Write back valid code to buffer
     bufferRestoreValidCode()
@@ -386,7 +402,7 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
-          rcFilePath: string = RcFilePath) =
+          rcFilePath: string = RcFilePath, showTypes: bool = false) =
   ## inim interpreter
 
   initApp(nim, srcFile, showHeader)
@@ -399,13 +415,16 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
       not existsFile(rcFilePath) or createRcFile: createRcFile(rcFilePath)
              else: loadConfig(rcFilePath)
 
-
   when promptHistory:
     # When prompt history is enabled, we want to load history
     historyFile = if config.getSectionValue("History", "persistent") == "True":
                     ConfigDir / "history.nim"
                   else: tmpHistory
     discard noiser.historyLoad(historyFile)
+
+  # Force show types
+  if showTypes:
+    config.setSectionKey("Style", "showTypes", "True")
 
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
@@ -422,12 +441,13 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     doRepl()
 
 when isMainModule:
-    import cligen
-    dispatch(main, short = {"flags": 'd'}, help = {
-            "nim": "path to nim compiler",
-            "srcFile": "nim script to preload/run",
-            "showHeader": "show program info startup",
-            "flags": "nim flags to pass to the compiler",
-            "createRcFile": "force create an inimrc file. Overrides current inimrc file",
-            "rcFilePath": "Change location of the inimrc file to use"
-      })
+  import cligen
+  dispatch(main, short = {"flags": 'd'}, help = {
+          "nim": "path to nim compiler",
+          "srcFile": "nim script to preload/run",
+          "showHeader": "show program info startup",
+          "flags": "nim flags to pass to the compiler",
+          "createRcFile": "force create an inimrc file. Overrides current inimrc file",
+          "rcFilePath": "Change location of the inimrc file to use",
+          "showTypes": "Show var types when printing var without echo"
+    })
