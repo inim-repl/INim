@@ -16,5 +16,5 @@ requires "https://github.com/PMunch/ansiparse"
 
 
 task test, "Run all tests":
-  exec "nim c -d:prompt_no_history -r tests/test.nim"
-  exec "nim c -f -d:TEST -r tests/test_interface.nim"
+  exec "nim c -d:prompt_no_history -r tests/test.nim --rcFilePath=\"$(pwd)/inim.ini\""
+  exec "nim c -f -d:TEST -r tests/test_interface.nim --rcFilePath=\"$(pwd)/inim.ini\""

@@ -3,9 +3,20 @@ import ansiparse
 import utils
 include inim
 
+let rcFilePath = getCurrentDir() / "inim.ini"
+
 # Init
 initApp("nim", "", false)
 init()
+
+config = createRcFile(rcFilePath)
+
+
+when promptHistory:
+    # When prompt history is enabled, we want to load history
+    historyFile = if config.getSectionValue("History", "persistent") == "True": ConfigDir / "history.nim"
+                      else: tmpHistory
+    discard noiser.historyLoad(historyFile)
 
 let prompt = getPromptSymbol()
 noiser.setPrompt(prompt)
@@ -60,3 +71,5 @@ swapStdin:
           raise
         counter.inc
 echo "Ran checks on " & $counter & " scenarios"
+
+removeFile(rcFilePath)
