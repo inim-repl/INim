@@ -12,9 +12,7 @@ bin           = @["inim"]
 requires "nim >= 1.0.0"
 requires "cligen >= 0.9.15"
 requires "noise"
-requires "https://github.com/PMunch/ansiparse"
 
 
 task test, "Run all tests":
-  exec "nim c -d:prompt_no_history -r tests/test.nim --rcFilePath=\"$(pwd)/inim.ini\""
-  exec "nim c -f -d:TEST -r tests/test_interface.nim --rcFilePath=\"$(pwd)/inim.ini\""
+  exec "nim c -d:prompt_no_history tests/test.nim"

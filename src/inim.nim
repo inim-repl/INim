@@ -422,7 +422,6 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     doRepl()
 
 when isMainModule:
-  when not defined(TEST):
     import cligen
     dispatch(main, short = {"flags": 'd'}, help = {
             "nim": "path to nim compiler",
