@@ -21,7 +21,8 @@ Config is saved and loaded from `configDir / inim`.
 
 Currently, the config allows you to set two options:
 * Style
-  * Set prompt string (default: "inim> ")
+  * `prompt`: Set prompt string (default: "inim> ")
+  * `showTypes`: Show var types when printing without echo (default: true)
 * History
   * persistent history (default: true)
 
