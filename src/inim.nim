@@ -190,7 +190,6 @@ proc showError(output: string) =
         " is of type '": "",
         "' and has to be discarded": "",
         "' and has to be used (or discarded)": ""
-
     })
     # Make split char to be a semicolon instead of a single-quote,
     # To avoid char type conflict having single-quotes
