@@ -179,7 +179,7 @@ proc showError(output: string) =
     a = currentExpression != ""
     b = importStatement == false
     c = previouslyIndented == false
-    d = message.endsWith("discarded")
+    d = message.contains("and has to be")
 
   # Discarded shortcut, print values: nim> myvar
   if a and b and c and d:
@@ -188,7 +188,8 @@ proc showError(output: string) =
     message = message.multiReplace({
         "Error: expression '": "",
         " is of type '": "",
-        "' and has to be discarded": ""
+        "' and has to be discarded": "",
+        "' and has to be used (or discarded)": ""
     })
     # Make split char to be a semicolon instead of a single-quote,
     # To avoid char type conflict having single-quotes
