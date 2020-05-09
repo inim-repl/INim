@@ -15,4 +15,4 @@ requires "noise"
 
 
 task test, "Run all tests":
-  exec "nim c -d:prompt_no_history tests/test.nim"
+  exec "nim c -r -d:prompt_no_history tests/test.nim"
