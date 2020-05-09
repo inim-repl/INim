@@ -4,3 +4,5 @@ src/inim.exe
 inim_*
 temp.nim
 temp
+./inim
+test/test
