@@ -16,7 +16,7 @@ var
   config: Config
 
 const
-  INimVersion = "0.4.6"
+  INimVersion = "0.4.7"
   IndentSpaces = "  "
   # endsWith
   IndentTriggers = [
