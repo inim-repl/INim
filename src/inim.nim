@@ -16,7 +16,7 @@ var
   config: Config
 
 const
-  NimblePkgVersion {.strdefine.} = "Unknown"
+  NimblePkgVersion {.strdefine.} = ""
   IndentSpaces = "  "
   # endsWith
   IndentTriggers = [
