@@ -16,7 +16,7 @@ var
   config: Config
 
 const
-  INimVersion = "0.4.7"
+  NimblePkgVersion {.strdefine.} = "Unknown"
   IndentSpaces = "  "
   # endsWith
   IndentTriggers = [
@@ -92,7 +92,7 @@ proc welcomeScreen() =
   outputFg(fgYellow, false):
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
-    stdout.writeLine "INim ", INimVersion
+    stdout.writeLine "INim ", NimblePkgVersion
     stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
