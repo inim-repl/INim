@@ -1,6 +1,12 @@
 import osproc, streams, os
 import unittest
 
+proc getResponse(inStream, outStream: var Stream, lines: seq[string] = @[]): string =
+  for line in lines:
+    inStream.writeLine(line)
+  inStream.flush()
+  outStream.readLine()
+
 suite "Interface Tests":
 
   test "Test Output":
@@ -15,16 +21,11 @@ suite "Interface Tests":
       inputStream = process.inputStream
       outputStream = process.outputStream
 
-    inputStream.writeLine("1 + 1")
-    inputStream.flush()
-    var fresult = outputStream.readLine()
-    require fresult == "2 == type int"
-
-    inputStream.writeLine("""let a = "A"""")
-    inputStream.writeLine("a")
-    inputStream.flush()
-    fresult = outputStream.readLine()
-    require fresult == "A == type string"
+    let defLines = @[
+      """let a = "A"""",
+      "a"
+    ]
+    require getResponse(inputStream, outputStream, defLines) == "A == type string"
 
     inputStream.writeLine("quit")
     inputStream.flush()
