@@ -95,7 +95,8 @@ proc welcomeScreen() =
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    stdout.setForegroundColor(fgCyan)
+    when not defined(NoColours):
+      stdout.setForegroundColor(fgCyan)
     stdout.writeLine getNimVersion() & getNimPath()
 
 
