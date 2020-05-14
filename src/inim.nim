@@ -66,10 +66,12 @@ var
 template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout in body and resets afterwards
-  stdout.setForegroundColor(color, bright)
+  when not defined(NoColours):
+    stdout.setForegroundColor(color, bright)
   body
 
-  stdout.resetAttributes()
+  when not defined(NoColours):
+    stdout.resetAttributes()
   stdout.flushFile()
 
 proc getNimVersion*(): string =
@@ -94,8 +96,8 @@ proc welcomeScreen() =
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
     stdout.setForegroundColor(fgCyan)
-    stdout.write getNimVersion()
-    stdout.write getNimPath()
+    stdout.writeLine getNimVersion() & getNimPath()
+
 
 proc cleanExit(exitCode = 0) =
   buffer.close()
