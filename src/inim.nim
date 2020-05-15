@@ -92,6 +92,7 @@ proc getNimPath(): string =
     return " at " & output
   return "\n"
 
+
 proc welcomeScreen() =
   outputFg(fgYellow, false):
     when defined(posix):
@@ -99,7 +100,8 @@ proc welcomeScreen() =
     stdout.writeLine "INim ", NimblePkgVersion
     if config.getSectionValue("Style", "showColor") == "True":
       stdout.setForegroundColor(fgCyan)
-    stdout.writeLine getNimVersion() & getNimPath()
+    stdout.write getNimVersion()
+    stdout.write getNimPath()
 
 
 proc cleanExit(exitCode = 0) =
