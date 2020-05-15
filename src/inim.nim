@@ -66,11 +66,11 @@ var
 template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout in body and resets afterwards
-  when not defined(NoColours):
+  when not defined(NoColor):
     stdout.setForegroundColor(color, bright)
   body
 
-  when not defined(NoColours):
+  when not defined(NoColor):
     stdout.resetAttributes()
   stdout.flushFile()
 
@@ -95,7 +95,7 @@ proc welcomeScreen() =
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    when not defined(NoColours):
+    when not defined(NoColor):
       stdout.setForegroundColor(fgCyan)
     stdout.writeLine getNimVersion() & getNimPath()
 
@@ -201,7 +201,7 @@ proc showError(output: string) =
     let typeExpression = message_seq[1] # type, e.g. char
 
     # Ignore this colour change
-    let shortcut = when defined(Windows) or defined(NoColours):
+    let shortcut = when defined(Windows) or defined(NoColor):
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "  : "
