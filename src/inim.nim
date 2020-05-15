@@ -426,12 +426,13 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   if flags.len > 0:
     app.flags = " -d:" & join(@flags, " -d:")
 
+  let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or not existsFile(rcFilePath) or createRcFile
+  config = if shouldCreateRc: createRcFile(rcFilePath)
+           else: loadConfig(rcFilePath)
+
   if app.showHeader: welcomeScreen()
 
-  config = if not existsorCreateDir(rcFilePath.splitPath.head) or
-      not existsFile(rcFilePath) or createRcFile: createRcFile(rcFilePath)
-             else: loadConfig(rcFilePath)
-
+  assert not isNil config
   when promptHistory:
     # When prompt history is enabled, we want to load history
     historyFile = if config.getSectionValue("History", "persistent") == "True":
@@ -439,6 +440,8 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
                   else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
+  if config.getSectionValue("Style", "FakeshowColor") == "True":
+    echo "Wtf?"
   # Force show types
   if showTypes:
     config.setSectionKey("Style", "showTypes", "True")
