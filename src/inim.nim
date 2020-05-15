@@ -200,7 +200,8 @@ proc showError(output: string) =
     let message_seq = message.split(";") # expression;type, e.g 'a';char
     let typeExpression = message_seq[1] # type, e.g. char
 
-    let shortcut = when defined(Windows):
+    # Ignore this colour change
+    let shortcut = when defined(Windows) or defined(NoColours):
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "  : "
