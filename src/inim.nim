@@ -10,6 +10,7 @@ type App = ref object
   showHeader: bool
   flags: string
   rcFile: string
+  showColor: bool
 
 var
   app: App
@@ -35,6 +36,7 @@ proc createRcFile(path: string): Config =
   result.setSectionKey("History", "persistent", "True")
   result.setSectionKey("Style", "prompt", "nim> ")
   result.setSectionKey("Style", "showTypes", "True")
+  result.setSectionKey("Style", "ShowColor", "True")
   result.writeConfig(path)
 
 let
@@ -66,11 +68,11 @@ var
 template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout in body and resets afterwards
-  when not defined(NoColor):
+  if config.getSectionValue("Style", "showColor") == "True":
     stdout.setForegroundColor(color, bright)
   body
 
-  when not defined(NoColor):
+  if config.getSectionValue("Style", "showColor") == "True":
     stdout.resetAttributes()
   stdout.flushFile()
 
@@ -95,7 +97,7 @@ proc welcomeScreen() =
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    when not defined(NoColor):
+    if config.getSectionValue("Style", "showColor") == "True":
       stdout.setForegroundColor(fgCyan)
     stdout.writeLine getNimVersion() & getNimPath()
 
@@ -201,7 +203,7 @@ proc showError(output: string) =
     let typeExpression = message_seq[1] # type, e.g. char
 
     # Ignore this colour change
-    let shortcut = when defined(Windows) or defined(NoColor):
+    let shortcut = when defined(Windows):
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "  : "
@@ -209,12 +211,19 @@ proc showError(output: string) =
             echo ""
             """.unindent()
         else: # Posix: colorize type to yellow
+          if config.getSectionValue("Style", "showColor") == "True":
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "\e[33m" # Yellow
             stdout.write "  : "
             stdout.write "{typeExpression}"
             echo "\e[39m" # Reset color
+            """.unindent()
+          else:
+            fmt"""
+            stdout.write $({currentExpression})
+            stdout.write "  : "
+            stdout.write "{typeExpression}"
             """.unindent()
 
     buffer.writeLine(shortcut)
@@ -395,19 +404,22 @@ Help - help, help()""")
   tempIndentCode = ""
 
 proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
-    rcFilePath = RcFilePath) =
+    rcFilePath = RcFilePath, showColor = true) =
   ## Initialize the ``app` variable.
   app = App(
       nim: nim,
       srcFile: srcFile,
       showHeader: showHeader,
       flags: flags,
-      rcFile: rcFilePath
+      rcFile: rcFilePath,
+      showColor: showColor
   )
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
-          rcFilePath: string = RcFilePath, showTypes: bool = false) =
+          rcFilePath: string = RcFilePath, showTypes: bool = false,
+          showColor: bool = true
+          ) =
   ## inim interpreter
 
   initApp(nim, srcFile, showHeader)
@@ -430,6 +442,10 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   # Force show types
   if showTypes:
     config.setSectionKey("Style", "showTypes", "True")
+
+  # Force show color
+  if not showColor or defined(NoColor):
+    config.setSectionKey("Style", "showColor", "False")
 
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
@@ -454,5 +470,6 @@ when isMainModule:
           "flags": "nim flags to pass to the compiler",
           "createRcFile": "force create an inimrc file. Overrides current inimrc file",
           "rcFilePath": "Change location of the inimrc file to use",
-          "showTypes": "Show var types when printing var without echo"
+          "showTypes": "Show var types when printing var without echo",
+          "showColor": "Color displayed text"
     })
