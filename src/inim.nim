@@ -10,6 +10,7 @@ type App = ref object
   showHeader: bool
   flags: string
   rcFile: string
+  showColor: bool
 
 var
   app: App
@@ -35,6 +36,7 @@ proc createRcFile(path: string): Config =
   result.setSectionKey("History", "persistent", "True")
   result.setSectionKey("Style", "prompt", "nim> ")
   result.setSectionKey("Style", "showTypes", "True")
+  result.setSectionKey("Style", "ShowColor", "True")
   result.writeConfig(path)
 
 let
@@ -66,10 +68,12 @@ var
 template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout in body and resets afterwards
-  stdout.setForegroundColor(color, bright)
+  if config.getSectionValue("Style", "showColor") == "True":
+    stdout.setForegroundColor(color, bright)
   body
 
-  stdout.resetAttributes()
+  if config.getSectionValue("Style", "showColor") == "True":
+    stdout.resetAttributes()
   stdout.flushFile()
 
 proc getNimVersion*(): string =
@@ -88,14 +92,17 @@ proc getNimPath(): string =
     return " at " & output
   return "\n"
 
+
 proc welcomeScreen() =
   outputFg(fgYellow, false):
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    stdout.setForegroundColor(fgCyan)
+    if config.getSectionValue("Style", "showColor") == "True":
+      stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
+
 
 proc cleanExit(exitCode = 0) =
   buffer.close()
@@ -197,6 +204,7 @@ proc showError(output: string) =
     let message_seq = message.split(";") # expression;type, e.g 'a';char
     let typeExpression = message_seq[1] # type, e.g. char
 
+    # Ignore this colour change
     let shortcut = when defined(Windows):
             fmt"""
             stdout.write $({currentExpression})
@@ -205,12 +213,19 @@ proc showError(output: string) =
             echo ""
             """.unindent()
         else: # Posix: colorize type to yellow
+          if config.getSectionValue("Style", "showColor") == "True":
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "\e[33m" # Yellow
             stdout.write "  : "
             stdout.write "{typeExpression}"
             echo "\e[39m" # Reset color
+            """.unindent()
+          else:
+            fmt"""
+            stdout.write $({currentExpression})
+            stdout.write "  : "
+            stdout.write "{typeExpression}"
             """.unindent()
 
     buffer.writeLine(shortcut)
@@ -391,31 +406,35 @@ Help - help, help()""")
   tempIndentCode = ""
 
 proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
-    rcFilePath = RcFilePath) =
+    rcFilePath = RcFilePath, showColor = true) =
   ## Initialize the ``app` variable.
   app = App(
       nim: nim,
       srcFile: srcFile,
       showHeader: showHeader,
       flags: flags,
-      rcFile: rcFilePath
+      rcFile: rcFilePath,
+      showColor: showColor
   )
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
-          rcFilePath: string = RcFilePath, showTypes: bool = false) =
+          rcFilePath: string = RcFilePath, showTypes: bool = false,
+          showColor: bool = true
+          ) =
   ## inim interpreter
 
   initApp(nim, srcFile, showHeader)
   if flags.len > 0:
     app.flags = " -d:" & join(@flags, " -d:")
 
+  let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or not existsFile(rcFilePath) or createRcFile
+  config = if shouldCreateRc: createRcFile(rcFilePath)
+           else: loadConfig(rcFilePath)
+
   if app.showHeader: welcomeScreen()
 
-  config = if not existsorCreateDir(rcFilePath.splitPath.head) or
-      not existsFile(rcFilePath) or createRcFile: createRcFile(rcFilePath)
-             else: loadConfig(rcFilePath)
-
+  assert not isNil config
   when promptHistory:
     # When prompt history is enabled, we want to load history
     historyFile = if config.getSectionValue("History", "persistent") == "True":
@@ -423,9 +442,15 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
                   else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
+  if config.getSectionValue("Style", "FakeshowColor") == "True":
+    echo "Wtf?"
   # Force show types
   if showTypes:
     config.setSectionKey("Style", "showTypes", "True")
+
+  # Force show color
+  if not showColor or defined(NoColor):
+    config.setSectionKey("Style", "showColor", "False")
 
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
@@ -450,5 +475,6 @@ when isMainModule:
           "flags": "nim flags to pass to the compiler",
           "createRcFile": "force create an inimrc file. Overrides current inimrc file",
           "rcFilePath": "Change location of the inimrc file to use",
-          "showTypes": "Show var types when printing var without echo"
+          "showTypes": "Show var types when printing var without echo",
+          "showColor": "Color displayed text"
     })
