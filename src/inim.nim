@@ -62,6 +62,7 @@ var
   tempIndentCode = ""    # Later append to `validCode` if whole block compiles well
   indentLevel = 0        # Current
   previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
+  sessionNoAutoIndent = false
   buffer: File
   noiser = Noise.init()
   historyFile: string
@@ -334,8 +335,10 @@ Help - help, help()""")
 
   # Check for indent and trigger it
   if currentExpression.hasIndentTrigger():
-    indentLevel += 1
-    previouslyIndented = true
+    # Already indented once skipping
+    if not sessionNoAutoIndent or not previouslyIndented:
+      indentLevel += 1
+      previouslyIndented = true
 
   # Don't run yet if still on indent
   if indentLevel != 0:
@@ -458,6 +461,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     # Still trigger indents but do not actually output any spaces,
     # useful when sending text to a terminal
     indentSpaces = ""
+    sessionNoAutoIndent = noAutoIndent
 
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
