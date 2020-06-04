@@ -3,6 +3,8 @@
 import osproc, streams, os
 import unittest
 
+let testRcfilePath = getCurrentDir() / "inim.ini"
+
 proc getResponse(inStream, outStream: var Stream, lines: seq[string] = @[]): string =
   ## Write all lines in `lines` to inStream and read the result
   for line in lines:
@@ -12,11 +14,12 @@ proc getResponse(inStream, outStream: var Stream, lines: seq[string] = @[]): str
 
 suite "Interface Tests":
 
+
   test "Test Standard Syntax works":
     var process = startProcess(
       "bin/inim",
       workingDir = "",
-      args = @["--rcFilePath=" & getCurrentDir() / "inim.ini", "--showHeader=false"],
+      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false"],
       options = {poDaemon}
     )
 
@@ -51,3 +54,6 @@ suite "Interface Tests":
     assert outputStream.atEnd()
 
     process.close()
+
+  if existsFile(testRcfilePath):
+    removeFile(testRcfilePath)
