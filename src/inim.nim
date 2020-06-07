@@ -11,14 +11,15 @@ type App = ref object
   flags: string
   rcFile: string
   showColor: bool
+  noAutoIndent: bool
 
 var
   app: App
   config: Config
+  indentSpaces = "  "
 
 const
   NimblePkgVersion {.strdefine.} = ""
-  IndentSpaces = "  "
   # endsWith
   IndentTriggers = [
       ",", "=", ":",
@@ -61,6 +62,7 @@ var
   tempIndentCode = ""    # Later append to `validCode` if whole block compiles well
   indentLevel = 0        # Current
   previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
+  sessionNoAutoIndent = false
   buffer: File
   noiser = Noise.init()
   historyFile: string
@@ -255,7 +257,7 @@ proc getPromptSymbol(): Styler =
   else:
     prompt = ".... "
   # Auto-indent (multi-level)
-  prompt &= IndentSpaces.repeat(indentLevel)
+  prompt &= indentSpaces.repeat(indentLevel)
   result = Styler.init(prompt)
 
 proc init(preload = "") =
@@ -328,24 +330,26 @@ Help - help, help()""")
       return
 
   # Write your line to buffer(temp) source code
-  buffer.writeLine(IndentSpaces.repeat(indentLevel) & currentExpression)
+  buffer.writeLine(indentSpaces.repeat(indentLevel) & currentExpression)
   buffer.flushFile()
 
   # Check for indent and trigger it
   if currentExpression.hasIndentTrigger():
-    indentLevel += 1
-    previouslyIndented = true
+    # Already indented once skipping
+    if not sessionNoAutoIndent or not previouslyIndented:
+      indentLevel += 1
+      previouslyIndented = true
 
   # Don't run yet if still on indent
   if indentLevel != 0:
     # Skip indent for first line
     let n = if currentExpression.hasIndentTrigger(): 1 else: 0
-    tempIndentCode &= IndentSpaces.repeat(indentLevel-n) &
+    tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
     currentExpression & "\n"
     when promptHistory:
       # Add in indents to our history
       if tempIndentCode.len > 0:
-        noiser.historyAdd(IndentSpaces.repeat(indentLevel-n) & currentExpression)
+        noiser.historyAdd(indentSpaces.repeat(indentLevel-n) & currentExpression)
     return
 
   # Compile buffer
@@ -377,12 +381,12 @@ Help - help, help()""")
     if indentLevel != 0:
       # Skip indent for first line
       let n = if currentExpression.hasIndentTrigger(): 1 else: 0
-      tempIndentCode &= IndentSpaces.repeat(indentLevel-n) &
+      tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
         currentExpression & "\n"
       when promptHistory:
         # Add in indents to our history
         if tempIndentCode.len > 0:
-          noiser.historyAdd(IndentSpaces.repeat(indentLevel-n) & currentExpression)
+          noiser.historyAdd(indentSpaces.repeat(indentLevel-n) & currentExpression)
 
     let (echo_output, echo_status) = compileCode()
     if echo_status == 0:
@@ -406,7 +410,7 @@ Help - help, help()""")
   tempIndentCode = ""
 
 proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
-    rcFilePath = RcFilePath, showColor = true) =
+    rcFilePath = RcFilePath, showColor = true, noAutoIndent = false) =
   ## Initialize the ``app` variable.
   app = App(
       nim: nim,
@@ -414,13 +418,14 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       showHeader: showHeader,
       flags: flags,
       rcFile: rcFilePath,
-      showColor: showColor
+      showColor: showColor,
+      noAutoIndent: noAutoIndent
   )
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
           rcFilePath: string = RcFilePath, showTypes: bool = false,
-          showColor: bool = true
+          showColor: bool = true, noAutoIndent: bool = false
           ) =
   ## inim interpreter
 
@@ -453,6 +458,12 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   if not showColor or defined(NoColor):
     config.setSectionKey("Style", "showColor", "False")
 
+  if noAutoIndent:
+    # Still trigger indents but do not actually output any spaces,
+    # useful when sending text to a terminal
+    indentSpaces = ""
+    sessionNoAutoIndent = noAutoIndent
+
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
     doAssert(srcFile.splitFile.ext == ".nim")
@@ -477,5 +488,6 @@ when isMainModule:
           "createRcFile": "force create an inimrc file. Overrides current inimrc file",
           "rcFilePath": "Change location of the inimrc file to use",
           "showTypes": "Show var types when printing var without echo",
-          "showColor": "Color displayed text"
+          "showColor": "Color displayed text",
+          "noAutoIndent": "Disable automatic indentation"
     })
