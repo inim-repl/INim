@@ -428,6 +428,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   if flags.len > 0:
     app.flags = " -d:" & join(@flags, " -d:")
 
+  discard existsorCreateDir(getConfigDir())
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or not existsFile(rcFilePath) or createRcFile
   config = if shouldCreateRc: createRcFile(rcFilePath)
            else: loadConfig(rcFilePath)
