@@ -2,7 +2,7 @@
 # Copyright (c) 2018 Andrei Regiani
 
 import os, osproc, strformat, strutils, terminal,
-       times, strformat, streams, parsecfg
+       times, strformat, parsecfg
 import noise
 
 type App = ref object
