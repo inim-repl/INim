@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.4.7"
+version       = "0.5.0"
 author        = "Andrei Regiani"
 description   = "Interactive Nim Shell / REPL / Playground"
 license       = "MIT"
