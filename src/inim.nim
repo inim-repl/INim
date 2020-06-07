@@ -1,7 +1,8 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
 
-import os, osproc, strformat, strutils, terminal, times, strformat, streams, parsecfg
+import os, osproc, strformat, strutils, terminal,
+       times, strformat, streams, parsecfg
 import noise
 
 type App = ref object
@@ -46,7 +47,8 @@ let
   tmpHistory = getTempDir() & "inim_history_" & $uniquePrefix & ".nim"
 
 proc compileCode(): auto =
-  # PENDING https://github.com/nim-lang/Nim/issues/8312, remove redundant `--hint[source]=off`
+  # PENDING https://github.com/nim-lang/Nim/issues/8312,
+  # remove redundant `--hint[source]=off`
   let compileCmd = [
       app.nim, "compile", "--run", "--verbosity=0", app.flags,
       "--hints=off", "--hint[source]=off", "--path=./", bufferSource
@@ -56,12 +58,12 @@ proc compileCode(): auto =
 proc getPromptSymbol(): Styler
 
 var
-  currentExpression = "" # Last stdin to evaluate
-  currentOutputLine = 0  # Last line shown from buffer's stdout
-  validCode = ""         # All statements compiled succesfully
-  tempIndentCode = ""    # Later append to `validCode` if whole block compiles well
-  indentLevel = 0        # Current
-  previouslyIndented = false # Helper for showError(), indentLevel resets before showError()
+  currentExpression = ""     # Last stdin to evaluate
+  currentOutputLine = 0      # Last line shown from buffer's stdout
+  validCode = ""             # All statements compiled succesfully
+  tempIndentCode = ""        # Later append to `validCode` if block compiles
+  indentLevel = 0            # Current
+  previouslyIndented = false # IndentLevel resets before showError()
   sessionNoAutoIndent = false
   buffer: File
   noiser = Noise.init()
@@ -69,7 +71,8 @@ var
 
 template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
-  ## Sets the foreground color for any writes to stdout in body and resets afterwards
+  ## Sets the foreground color for any writes to stdout
+  ## in body and resets afterwards
   if config.getSectionValue("Style", "showColor") == "True":
     stdout.setForegroundColor(color, bright)
   body
@@ -109,7 +112,7 @@ proc welcomeScreen() =
 proc cleanExit(exitCode = 0) =
   buffer.close()
   removeFile(bufferSource) # Temp .nim
-  removeFile(bufferSource[0..^5]) # Temp binary, same filename just without ".nim"
+  removeFile(bufferSource[0..^5]) # Temp binary, same filename without ".nim"
   removeFile(tmpHistory)
   removeDir(getTempDir() & "nimcache")
   when promptHistory:
@@ -279,7 +282,8 @@ proc init(preload = "") =
   # Compilation error
   else:
     bufferRestoreValidCode()
-    # Imports display more of the stack trace in case of errors, instead of one liners error
+    # Imports display more of the stack trace in case of errors,
+    # instead of one-liners error
     currentExpression = "import " # Pretend it was an import for showError()
     showError(output)
     cleanExit(1)
@@ -349,7 +353,9 @@ Help - help, help()""")
     when promptHistory:
       # Add in indents to our history
       if tempIndentCode.len > 0:
-        noiser.historyAdd(indentSpaces.repeat(indentLevel-n) & currentExpression)
+        noiser.historyAdd(
+          indentSpaces.repeat(indentLevel-n) & currentExpression
+        )
     return
 
   # Compile buffer
@@ -370,7 +376,8 @@ Help - help, help()""")
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
-    currentExpression = if config.getSectionValue("Style", "showTypes") == "True":
+    let showTypes = config.getSectionValue("Style", "showTypes")
+    currentExpression = if showTypes == "True":
         fmt"""echo $({currentExpression}) & " == " & "type " & $(type({currentExpression}))"""
       else:
         fmt"""echo $({currentExpression})"""
@@ -386,7 +393,9 @@ Help - help, help()""")
       when promptHistory:
         # Add in indents to our history
         if tempIndentCode.len > 0:
-          noiser.historyAdd(indentSpaces.repeat(indentLevel-n) & currentExpression)
+          noiser.historyAdd(
+            indentSpaces.repeat(indentLevel-n) & currentExpression
+          )
 
     let (echo_output, echo_status) = compileCode()
     if echo_status == 0:
@@ -434,7 +443,8 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     app.flags = " -d:" & join(@flags, " -d:")
 
   discard existsorCreateDir(getConfigDir())
-  let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or not existsFile(rcFilePath) or createRcFile
+  let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
+      not existsFile(rcFilePath) or createRcFile
   config = if shouldCreateRc: createRcFile(rcFilePath)
            else: loadConfig(rcFilePath)
 
@@ -481,11 +491,11 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
 when isMainModule:
   import cligen
   dispatch(main, short = {"flags": 'd'}, help = {
-          "nim": "path to nim compiler",
-          "srcFile": "nim script to preload/run",
-          "showHeader": "show program info startup",
-          "flags": "nim flags to pass to the compiler",
-          "createRcFile": "force create an inimrc file. Overrides current inimrc file",
+          "nim": "Path to nim compiler",
+          "srcFile": "Nim script to preload/run",
+          "showHeader": "Show program info startup",
+          "flags": "Nim flags to pass to the compiler",
+          "createRcFile": "Force create inimrc file. Overrides current file",
           "rcFilePath": "Change location of the inimrc file to use",
           "showTypes": "Show var types when printing var without echo",
           "showColor": "Color displayed text",
