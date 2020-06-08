@@ -452,13 +452,16 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
           rcFilePath: string = RcFilePath, showTypes: bool = false,
-          showColor: bool = true, noAutoIndent: bool = false
-          ) =
+          showColor: bool = true, noAutoIndent: bool = false,
+          withTools: bool = false) =
   ## inim interpreter
 
   initApp(nim, srcFile, showHeader)
   if flags.len > 0:
     app.flags = " -d:" & join(@flags, " -d:")
+
+  if withTools:
+    app.flags.add(" -d:withTools")
 
   discard existsorCreateDir(getConfigDir())
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
@@ -519,5 +522,6 @@ when isMainModule:
           "rcFilePath": "Change location of the inimrc file to use",
           "showTypes": "Show var types when printing var without echo",
           "showColor": "Color displayed text",
-          "noAutoIndent": "Disable automatic indentation"
+          "noAutoIndent": "Disable automatic indentation",
+          "withTools": "Load handy tools"
     })
