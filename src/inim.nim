@@ -12,8 +12,11 @@ type App = ref object
   flags: string
   rcFile: string
   showColor: bool
+  showTypes: bool
   noAutoIndent: bool
   editor: string
+  prompt: string
+  withTools: bool
 
 var
   app: App
@@ -95,11 +98,11 @@ template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout
   ## in body and resets afterwards
-  if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
+  if app.showColor:
     stdout.setForegroundColor(color, bright)
   body
 
-  if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
+  if app.showColor:
     stdout.resetAttributes()
   stdout.flushFile()
 
@@ -125,7 +128,7 @@ proc welcomeScreen() =
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
+    if app.showColor:
       stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
@@ -241,7 +244,7 @@ proc showError(output: string) =
             echo ""
             """.unindent()
         else: # Posix: colorize type to yellow
-          if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
+          if app.showColor:
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "\e[33m" # Yellow
@@ -278,7 +281,7 @@ proc showError(output: string) =
 proc getPromptSymbol(): Styler =
   var prompt = ""
   if indentLevel == 0:
-    prompt = config.getSectionValue("Style", "prompt")
+    prompt = app.prompt
     previouslyIndented = false
   else:
     prompt = ".... "
@@ -357,12 +360,19 @@ proc doRepl() =
     cleanExit()
   elif currentExpression in ["help", "help()"]:
     outputFg(fgCyan, true):
-      echo("""
+      var helpString = """
 iNim - Interactive Nim Shell - By AndreiRegiani
 
 Available Commands:
 Quit - exit, exit(), quit, quit(), ctrl+d
-Help - help, help()""")
+Help - help, help()"""
+      if app.withTools:
+        helpString.add("""ls(dir = .) - Print contents of dir
+cd(dir = ~/) - Change current directory
+pwd() - Print current directory
+call(cmd) - Execute command cmd in current shell
+""")
+      echo helpString
     return
 
   # Empty line: exit indent level, otherwise do nothing
@@ -415,8 +425,7 @@ Help - help, help()""")
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
-    let showTypes = config.getOrSetSectionKeyValue("Style", "showTypes", "True")
-    currentExpression = if showTypes == "True":
+    currentExpression = if app.showTypes:
         fmt"""echo $({currentExpression}) & " == " & "type " & $(type({currentExpression}))"""
       else:
         fmt"""echo $({currentExpression})"""
@@ -467,7 +476,8 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       flags: flags,
       rcFile: rcFilePath,
       showColor: showColor,
-      noAutoIndent: noAutoIndent
+      noAutoIndent: noAutoIndent,
+      withTools: false
   )
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
@@ -491,6 +501,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
 
   if withTools or config.getOrSetSectionKeyValue("Features", "withTools", "False") == "True":
     app.flags.add(" -d:withTools")
+    app.withTools = true
 
   assert not isNil config
   when promptHistory:
@@ -501,12 +512,14 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     discard noiser.historyLoad(historyFile)
 
   # Force show types
-  if showTypes:
-    config.setSectionKey("Style", "showTypes", "True")
+  if showTypes or config.getOrSetSectionKeyValue("Style", "showTypes", "True") == "True":
+    app.showTypes = true
+
+  app.prompt = config.getOrSetSectionKeyValue("Style", "prompt", "nim> ")
 
   # Force show color
-  if not showColor or defined(NoColor):
-    config.setSectionKey("Style", "showColor", "False")
+  if not showColor or defined(NoColor) or config.getOrSetSectionKeyValue("Style", "showColor", "True") == "False":
+    app.showColor = false
 
   if noAutoIndent:
     # Still trigger indents but do not actually output any spaces,
