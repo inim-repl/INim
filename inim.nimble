@@ -14,6 +14,7 @@ requires "cligen >= 0.9.15"
 requires "noise"
 
 
+
 task test, "Run all tests":
   exec "mkdir -p bin"
   exec "nim c -d:NoColor -d:prompt_no_history --out:bin/inim src/inim.nim"
