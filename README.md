@@ -13,6 +13,7 @@
 * Runs in the current directory: `import` your local modules (access to exported* symbols)
 * Preload existing source code (access to non-exported* symbols): `inim -s example.nim`
 * Optional Colorized output
+* Edit lines using $EDITOR (Ctrl-X)
 
 ## Config
 Config is saved and loaded from `configDir / inim`.
