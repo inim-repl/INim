@@ -33,6 +33,25 @@ const
   ConfigDir = getConfigDir() / "inim"
   RcFilePath = ConfigDir / "inim.ini"
 
+proc getOrSetSectionKeyValue(dict: var Config, section, key, default: string): string =
+  ## Get a value or set default for that key
+  ## This is for when users have older versions of the config where they may be missing keys
+  result = dict.getSectionValue(section, key)
+  if result == "":
+    #Option not present, we should set instead of erroring
+    dict.setSectionKey(section, key, default)
+    result = default
+
+proc loadRCFileConfig(path: string): Config =
+  # Perform any config migrations
+  result = loadConfig(path)
+  # Refresh config to use showColor instead of ShowColor (consistency)
+  if result.getSectionValue("Style", "ShowColor") != "":
+    result.setSectionKey("Style", "showColor", result.getSectionValue("Style", "ShowColor"))
+    result.delSectionKey("Style", "ShowColor")
+  result.writeConfig(path)
+
+
 proc createRcFile(path: string): Config =
   ## Create a new rc file with default sections populated
   result = newConfig()
@@ -40,6 +59,7 @@ proc createRcFile(path: string): Config =
   result.setSectionKey("Style", "prompt", "nim> ")
   result.setSectionKey("Style", "showTypes", "True")
   result.setSectionKey("Style", "showColor", "True")
+  result.setSectionKey("Features", "withTools", "False")
   result.writeConfig(path)
 
 let
@@ -75,11 +95,11 @@ template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout
   ## in body and resets afterwards
-  if config.getSectionValue("Style", "showColor") == "True":
+  if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
     stdout.setForegroundColor(color, bright)
   body
 
-  if config.getSectionValue("Style", "showColor") == "True":
+  if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
     stdout.resetAttributes()
   stdout.flushFile()
 
@@ -105,7 +125,7 @@ proc welcomeScreen() =
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    if config.getSectionValue("Style", "showColor") == "True":
+    if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
       stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
@@ -117,6 +137,7 @@ proc cleanExit(exitCode = 0) =
   removeFile(bufferSource[0..^5]) # Temp binary, same filename without ".nim"
   removeFile(tmpHistory)
   removeDir(getTempDir() & "nimcache")
+  config.writeConfig(app.rcFile)
   when promptHistory:
     # Save our history
     discard noiser.historySave(historyFile)
@@ -220,7 +241,7 @@ proc showError(output: string) =
             echo ""
             """.unindent()
         else: # Posix: colorize type to yellow
-          if config.getSectionValue("Style", "showColor") == "True":
+          if config.getOrSetSectionKeyValue("Style", "showColor", "True") == "True":
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "\e[33m" # Yellow
@@ -394,7 +415,7 @@ Help - help, help()""")
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
-    let showTypes = config.getSectionValue("Style", "showTypes")
+    let showTypes = config.getOrSetSectionKeyValue("Style", "showTypes", "True")
     currentExpression = if showTypes == "True":
         fmt"""echo $({currentExpression}) & " == " & "type " & $(type({currentExpression}))"""
       else:
@@ -460,27 +481,25 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   if flags.len > 0:
     app.flags = " -d:" & join(@flags, " -d:")
 
-  if withTools:
-    app.flags.add(" -d:withTools")
-
   discard existsorCreateDir(getConfigDir())
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
       not existsFile(rcFilePath) or createRcFile
   config = if shouldCreateRc: createRcFile(rcFilePath)
-           else: loadConfig(rcFilePath)
+           else: loadRCFileConfig(rcFilePath)
 
   if app.showHeader: welcomeScreen()
+
+  if withTools or config.getOrSetSectionKeyValue("Features", "withTools", "False") == "True":
+    app.flags.add(" -d:withTools")
 
   assert not isNil config
   when promptHistory:
     # When prompt history is enabled, we want to load history
-    historyFile = if config.getSectionValue("History", "persistent") == "True":
+    historyFile = if config.getOrSetSectionKeyValue("History", "persistent", "True") == "True":
                     ConfigDir / "history.nim"
                   else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
-  if config.getSectionValue("Style", "FakeshowColor") == "True":
-    echo "Wtf?"
   # Force show types
   if showTypes:
     config.setSectionKey("Style", "showTypes", "True")
