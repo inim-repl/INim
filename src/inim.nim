@@ -36,7 +36,8 @@ const
   ConfigDir = getConfigDir() / "inim"
   RcFilePath = ConfigDir / "inim.ini"
 
-proc getOrSetSectionKeyValue(dict: var Config, section, key, default: string): string =
+proc getOrSetSectionKeyValue(dict: var Config, section, key,
+    default: string): string =
   ## Get a value or set default for that key
   ## This is for when users have older versions of the config where they may be missing keys
   result = dict.getSectionValue(section, key)
@@ -499,26 +500,30 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
 
   if app.showHeader: welcomeScreen()
 
-  if withTools or config.getOrSetSectionKeyValue("Features", "withTools", "False") == "True":
+  if withTools or config.getOrSetSectionKeyValue("Features", "withTools",
+      "False") == "True":
     app.flags.add(" -d:withTools")
     app.withTools = true
 
   assert not isNil config
   when promptHistory:
     # When prompt history is enabled, we want to load history
-    historyFile = if config.getOrSetSectionKeyValue("History", "persistent", "True") == "True":
+    historyFile = if config.getOrSetSectionKeyValue("History", "persistent",
+        "True") == "True":
                     ConfigDir / "history.nim"
                   else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
   # Force show types
-  if showTypes or config.getOrSetSectionKeyValue("Style", "showTypes", "True") == "True":
+  if showTypes or config.getOrSetSectionKeyValue("Style", "showTypes",
+      "True") == "True":
     app.showTypes = true
 
   app.prompt = config.getOrSetSectionKeyValue("Style", "prompt", "nim> ")
 
   # Force show color
-  if not showColor or defined(NoColor) or config.getOrSetSectionKeyValue("Style", "showColor", "True") == "False":
+  if not showColor or defined(NoColor) or config.getOrSetSectionKeyValue(
+      "Style", "showColor", "True") == "False":
     app.showColor = false
 
   if noAutoIndent:
