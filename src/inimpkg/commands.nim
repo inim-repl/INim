@@ -1,10 +1,14 @@
 when defined(INCLUDED):
+  # Include our imports to our embedded code if we have tools enabled
   import algorithm
   from strutils import join
-  from os import getCurrentDir, getHomeDir, setCurrentDir, walkDir, absolutePath, lastPathPart
+  from os import getCurrentDir, getHomeDir, setCurrentDir, walkDir,
+      absolutePath, lastPathPart
   from osproc import execCmd
 
 macro command(x: untyped): untyped =
+  ## Procs annotated with the command pragma are patched up to allow
+  ## for parenthesis-less calls to procs with no args
   when not defined(INCLUDED):
     let msg = name(x)
     result = newStmtList(
@@ -12,16 +16,16 @@ macro command(x: untyped): untyped =
         newNimNode(nnkDotExpr).add(
           newIdentNode("commands"),
           newIdentNode("add")
-        ),
-        newStrLitNode($msg)
       ),
+      newStrLitNode($msg)
+    ),
       newNimNode(nnkCall).add(
         newNimNode(nnkDotExpr).add(
           newIdentNode("commands"),
           newIdentNode("add")
-        ),
-        newStrLitNode($msg & "()")
       ),
+      newStrLitNode($msg & "()")
+    ),
       x
     )
   else:
