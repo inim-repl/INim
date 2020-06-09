@@ -2,9 +2,8 @@
 # Copyright (c) 2018 Andrei Regiani
 
 import os, osproc, strformat, strutils, terminal,
-       times, strformat, parsecfg, algorithm
+       times, strformat, parsecfg
 import noise
-import macros
 
 # Lists available builtin commands
 var commands*: seq[string] = @[]
@@ -488,7 +487,7 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       nim: nim,
       srcFile: srcFile,
       showHeader: showHeader,
-      flags: "-d:INCLUDED " & flags,
+      flags: flags,
       rcFile: rcFilePath,
       showColor: showColor,
       noAutoIndent: noAutoIndent,

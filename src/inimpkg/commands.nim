@@ -1,15 +1,17 @@
-when defined(INCLUDED):
+when defined(withTools):
   # Include our imports to our embedded code if we have tools enabled
   import algorithm
   from strutils import join
   from os import getCurrentDir, getHomeDir, setCurrentDir, walkDir,
       absolutePath, lastPathPart
   from osproc import execCmd
+else:
+  import macros, algorithm
 
 macro command(x: untyped): untyped =
   ## Procs annotated with the command pragma are patched up to allow
   ## for parenthesis-less calls to procs with no args
-  when not defined(INCLUDED):
+  when not defined(withTools):
     let msg = name(x)
     result = newStmtList(
       newNimNode(nnkCall).add(
