@@ -3,4 +3,4 @@
 {. warning[UnusedImport]:off .}
 import typetraits
 when defined(withTools):
-  import src/inimpkg/commands
+  include src/inimpkg/commands

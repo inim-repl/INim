@@ -2,8 +2,14 @@
 # Copyright (c) 2018 Andrei Regiani
 
 import os, osproc, strformat, strutils, terminal,
-       times, strformat, parsecfg
+       times, strformat, parsecfg, algorithm
 import noise
+import macros
+
+# Lists available builtin commands
+var commands*: seq[string] = @[]
+
+include inimpkg/commands
 
 type App = ref object
   nim: string
@@ -107,10 +113,12 @@ template outputFg(color: ForegroundColor, bright: bool = false,
     stdout.resetAttributes()
   stdout.flushFile()
 
+
 proc getNimVersion*(): string =
   let (output, status) = execCmdEx(fmt"{app.nim} --version")
   doAssert status == 0, fmt"make sure {app.nim} is in PATH"
   result = output.splitLines()[0]
+
 
 proc getNimPath(): string =
   # TODO: use `which` PENDING https://github.com/nim-lang/Nim/issues/8311
@@ -375,6 +383,12 @@ call(cmd) - Execute command cmd in current shell
 """)
       echo helpString
     return
+  elif currentExpression in commands:
+    if app.withTools:
+      if not currentExpression.endsWith("()"):
+        currentExpression.add("()")
+    else:
+      discard
 
   # Empty line: exit indent level, otherwise do nothing
   if currentExpression == "":
@@ -474,7 +488,7 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       nim: nim,
       srcFile: srcFile,
       showHeader: showHeader,
-      flags: flags,
+      flags: "-d:INCLUDED " & flags,
       rcFile: rcFilePath,
       showColor: showColor,
       noAutoIndent: noAutoIndent,
