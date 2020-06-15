@@ -11,10 +11,7 @@ bin           = @["inim"]
 
 requires "nim >= 1.0.0"
 requires "cligen >= 0.9.15"
-# TODO: Swap back to the default nimble package after https://github.com/jangko/nim-noise/pull/9 is merged
-# requires "noise"
-requires "https://github.com/Tangdongle/nim-noise"
-
+requires "noise"
 
 task test, "Run all tests":
   exec "mkdir -p bin"
