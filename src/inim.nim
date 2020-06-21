@@ -38,7 +38,7 @@ proc createRcFile(path: string): Config =
   result.setSectionKey("History", "persistent", "True")
   result.setSectionKey("Style", "prompt", "nim> ")
   result.setSectionKey("Style", "showTypes", "True")
-  result.setSectionKey("Style", "ShowColor", "True")
+  result.setSectionKey("Style", "showColor", "True")
   result.writeConfig(path)
 
 let
