@@ -52,14 +52,9 @@ proc getOrSetSectionKeyValue(dict: var Config, section, key,
     result = default
 
 proc loadRCFileConfig(path: string): Config =
-  # Perform any config migrations
+  # Perform any config migrations here
   result = loadConfig(path)
-  # Refresh config to use showColor instead of ShowColor (consistency)
-  if result.getSectionValue("Style", "ShowColor") != "":
-    result.setSectionKey("Style", "showColor", result.getSectionValue("Style", "ShowColor"))
-    result.delSectionKey("Style", "ShowColor")
   result.writeConfig(path)
-
 
 proc createRcFile(path: string): Config =
   ## Create a new rc file with default sections populated
