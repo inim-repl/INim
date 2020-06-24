@@ -13,6 +13,7 @@ type App = ref object
   rcFile: string
   showColor: bool
   noAutoIndent: bool
+  editor: string
 
 var
   app: App
@@ -44,6 +45,7 @@ proc createRcFile(path: string): Config =
 let
   uniquePrefix = epochTime().int
   bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
+  validCodeSource = getTempDir() & "inimvc_" & $uniquePrefix & ".nim"
   tmpHistory = getTempDir() & "inim_history_" & $uniquePrefix & ".nim"
 
 proc compileCode(): auto =
@@ -308,6 +310,22 @@ proc doRepl() =
     of ktCtrlD:
       echo "\nQuitting INim: Goodbye!"
       cleanExit()
+    of ktCtrlX:
+      if app.editor != "":
+        var vc = open(validCodeSource, fmWrite)
+        vc.write(validCode)
+        vc.close()
+        # Spawn our editor as a process
+        var pid = startProcess(app.editor, args = @[validCodeSource], options = {poParentStreams, poUsePath})
+        # Wait for the user to finish editing
+        discard pid.waitForExit()
+        pid.close()
+        # Read back the full code into our valid code buffer
+        validCode = readFile(validCodeSource)
+        bufferRestoreValidCode()
+      else:
+        echo "No $EDITOR set in ENV"
+      return
     else:
       return
 
@@ -473,6 +491,8 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     # useful when sending text to a terminal
     indentSpaces = ""
     sessionNoAutoIndent = noAutoIndent
+
+  app.editor = getEnv("EDITOR")
 
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
