@@ -10,7 +10,7 @@ bin           = @["inim"]
 # Dependencies
 
 requires "nim >= 1.0.0"
-requires "cligen >= 0.9.15"
+requires "cligen >= 1.0.0"
 requires "noise"
 
 
