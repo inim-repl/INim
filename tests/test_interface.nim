@@ -35,7 +35,7 @@ suite "Interface Tests":
 
     let typeLines = @[
       "type B = object",
-      "c: string",
+      "  c: string", # Have to add indents in manually for tests now
       "",
       "B"
     ]
@@ -48,6 +48,16 @@ suite "Interface Tests":
       "g"
     ]
     require getResponse(inputStream, outputStream, varLines) == """(c: "C") == type B"""
+
+
+    let ifLines = @[
+      """if true:""",
+      """  echo "TRUE"""",
+      """else:""",
+      """  echo "FALSE"""",
+      """""",
+    ]
+    require getResponse(inputStream, outputStream, ifLines) == """TRUE"""
 
     inputStream.writeLine("quit")
     inputStream.flush()
