@@ -203,6 +203,7 @@ proc showError(output: string) =
         "Error: expression '": "",
         " is of type '": "",
         "' and has to be used": "",
+        "' and has to be discarded": "",
         "' and has to be used (or discarded)": ""
     })
     # Make split char to be a semicolon instead of a single-quote,
@@ -389,7 +390,7 @@ Help - help, help()""")
       # Roll back echoes
       bufferRestoreValidCode()
   # Maybe trying to echo value?
-  elif "has to be used" in output and indentLevel == 0: #
+  elif "has to be used" in output or "has to be discarded" in output and indentLevel == 0: #
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
