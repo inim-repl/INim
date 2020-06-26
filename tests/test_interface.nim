@@ -58,6 +58,15 @@ suite "Interface Tests":
     ]
     require getResponse(inputStream, outputStream, varLines) == """(c: "C") == type B"""
 
+    # Make sure we're not creating more errors when we type in code that wouldn't compile normally
+    let jankLines = @[
+      """proc adderNoReturnNoType(a: float, b: float) = a + b""",
+    ]
+    require getResponse(inputStream, outputStream, jankLines) == """Error: expression 'a + b' is of type 'float' and has to be discarded"""
+
+    inputStream.writeLine("quit")
+    inputStream.flush()
+    assert outputStream.atEnd()
 
   test "Test commands":
     # Test cd
