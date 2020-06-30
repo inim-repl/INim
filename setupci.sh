@@ -10,7 +10,7 @@ if ! type -P choosenim &> /dev/null; then
   mkdir -p $GITBIN
 
   export CHOOSENIM_CHOOSE_VERSION="$BRANCH --latest"
-  wget https://nim-lang.org/choosenim/init.sh
+  curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
   sh init.sh -y
   cp $HOME/.nimble/bin/choosenim$EXT $GITBIN/.
 

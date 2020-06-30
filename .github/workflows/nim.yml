@@ -11,11 +11,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    container:
-      image: nimlang/nim
-
     steps:
     - uses: actions/checkout@v2
+    - name: install curl
+      run: apt update && apt install curl -y
     - name: setup choosenim
       run: ./setupci.sh
     - name: Update nimble
