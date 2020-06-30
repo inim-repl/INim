@@ -3,7 +3,7 @@
 # This script borrowed from the Nimble project - Thanks!
 export BRANCH=devel
 export PATH=$HOME/.nimble/bin:$GITBIN:$PATH
-
+echo $HOME
 if ! type -P choosenim &> /dev/null; then
   echo "Fresh install"
 

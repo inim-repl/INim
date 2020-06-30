@@ -18,11 +18,11 @@ jobs:
     - name: setup choosenim
       run: ./setupci.sh
     - name: Update nimble
-      run: .nimble/bin/nimble update
+      run: /home/runner/.nimble/bin/nimble update
     - name: Build INim
-      run: .nimble/bin/nimble build
+      run: /home/runner/.nimble/bin/nimble build
     - name: Run tests
-      run: .nimble/bin/nimble test -d:prompt_no_history
+      run: /home/runnea/.nimble/bin/nimble test -d:prompt_no_history
 
   build-latest:
 
