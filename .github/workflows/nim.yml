@@ -10,6 +10,7 @@ jobs:
   build-devel:
 
     runs-on: ubuntu-latest
+      PATH: /usr/share/rust/.cargo/bin:/home/runner/.config/composer/vendor/bin:/home/runner/.dotnet/tools:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/runner/.nimble/bin
     steps:
     - name: debug
       run: echo $PATH
