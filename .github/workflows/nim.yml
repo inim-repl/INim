@@ -25,7 +25,7 @@ jobs:
     - name: Build INim
       run: /home/runner/.nimble/bin/nimble build
     - name: Run tests
-      run: /home/runnea/.nimble/bin/nimble test -d:prompt_no_history
+      run: /home/runner/.nimble/bin/nimble test -d:prompt_no_history
 
   build-latest:
 
