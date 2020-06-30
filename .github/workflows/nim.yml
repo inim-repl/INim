@@ -10,7 +10,8 @@ jobs:
   build-devel:
 
     runs-on: ubuntu-latest
-
+    env: 
+      PATH: $PATH:/home/runner/.nimble/bin
     steps:
     - uses: actions/checkout@v2
     - name: install curl
