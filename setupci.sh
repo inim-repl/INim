@@ -16,5 +16,6 @@ else
   rm -rf $HOME/.choosenim/current
   choosenim update $BRANCH --latest
   choosenim $BRANCH
+  nim -v
 fi
 
