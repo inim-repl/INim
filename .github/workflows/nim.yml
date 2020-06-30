@@ -10,8 +10,6 @@ jobs:
   build-devel:
 
     runs-on: ubuntu-latest
-    env: 
-      PATH: $PATH:/home/runner/.nimble/bin
     steps:
     - name: debug
       run: echo $PATH
