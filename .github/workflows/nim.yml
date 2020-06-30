@@ -13,6 +13,8 @@ jobs:
     env: 
       PATH: $PATH:/home/runner/.nimble/bin
     steps:
+    - name: debug
+      run: echo $PATH
     - uses: actions/checkout@v2
     - name: install curl
       run: sudo apt update && sudo apt install curl -y
