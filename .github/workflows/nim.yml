@@ -35,6 +35,6 @@ jobs:
     - name: Update nimble
       run: nimble update
     - name: Build INim
-      run: nimble build
+      run: nim -v && nimble build --verbose
     - name: Run tests
       run: nimble test -d:prompt_no_history
