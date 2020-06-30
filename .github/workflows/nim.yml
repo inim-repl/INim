@@ -16,25 +16,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: setup choosenim
+      run: ./setupci.sh
     - name: Update nimble
       run: nimble update
     - name: Build INim
       run: nimble build
-    - name: Run tests
-      run: nimble test -d:prompt_no_history
-
-  build-devel:
-
-    runs-on: ubuntu-latest
-
-    container:
-      image: nimlang/nim:devel
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Update nimble
-      run: nimble update
-    - name: Build INim
-      run: nim -v && nimble build --verbose
     - name: Run tests
       run: nimble test -d:prompt_no_history
