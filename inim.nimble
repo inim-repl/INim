@@ -17,4 +17,5 @@ task test, "Run all tests":
   exec "mkdir -p bin"
   exec "nim c -d:NoColor -d:prompt_no_history --out:bin/inim src/inim.nim"
   exec "nim c -r -d:prompt_no_history tests/test.nim"
+  exec "nim c -r -d:withTools -d:prompt_no_history tests/test_commands.nim"
   exec "nim c -r -d:prompt_no_history tests/test_interface.nim"
