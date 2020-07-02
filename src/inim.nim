@@ -289,7 +289,6 @@ proc getPromptSymbol(): Styler =
   else:
     prompt = ".... "
   # Auto-indent (multi-level)
-  prompt &= indentSpaces.repeat(indentLevel)
   result = Styler.init(prompt)
 
 proc init(preload = "") =
@@ -326,6 +325,8 @@ proc hasIndentTrigger*(line: string): bool =
 
 proc doRepl() =
   # Read line
+  if indentLevel > 0:
+    noiser.preloadBuffer(indentSpaces.repeat(indentLevel))
   let ok = noiser.readLine()
   if not ok:
     case noiser.getKeyType():
@@ -385,7 +386,7 @@ call(cmd) - Execute command cmd in current shell
       discard
 
   # Empty line: exit indent level, otherwise do nothing
-  if currentExpression == "":
+  if currentExpression.strip() == "" or currentExpression.startsWith("else"):
     if indentLevel > 0:
       indentLevel -= 1
     elif indentLevel == 0:
@@ -406,21 +407,18 @@ call(cmd) - Execute command cmd in current shell
   if indentLevel != 0:
     # Skip indent for first line
     let n = if currentExpression.hasIndentTrigger(): 1 else: 0
-    tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
-    currentExpression & "\n"
+    tempIndentCode &= currentExpression & "\n"
     when promptHistory:
       # Add in indents to our history
       if tempIndentCode.len > 0:
-        noiser.historyAdd(
-          indentSpaces.repeat(indentLevel-n) & currentExpression
-        )
+        noiser.historyAdd(currentExpression)
     return
 
   # Compile buffer
   let (output, status) = compileCode()
 
   when promptHistory:
-    if currentExpression.len > 0:
+    if currentExpression.strip().len > 0:
       noiser.historyAdd(currentExpression)
 
   # Succesful compilation, expression is valid
@@ -445,13 +443,12 @@ call(cmd) - Execute command cmd in current shell
     if indentLevel != 0:
       # Skip indent for first line
       let n = if currentExpression.hasIndentTrigger(): 1 else: 0
-      tempIndentCode &= indentSpaces.repeat(indentLevel-n) &
-        currentExpression & "\n"
+      tempIndentCode &= currentExpression & "\n"
       when promptHistory:
         # Add in indents to our history
-        if tempIndentCode.len > 0:
+        if currentExpression.len > 0:
           noiser.historyAdd(
-            indentSpaces.repeat(indentLevel-n) & currentExpression
+            currentExpression
           )
 
     let (echo_output, echo_status) = compileCode()

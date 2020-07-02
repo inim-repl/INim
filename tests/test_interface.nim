@@ -29,13 +29,6 @@ suite "Interface Tests":
       inputStream = process.inputStream
       outputStream = process.outputStream
 
-  teardown:
-    # Clean up after the process quits
-    inputStream.writeLine("quit")
-    inputStream.flush()
-    process.close()
-
-
   test "Test Standard Syntax works":
     let defLines = @[
       """let a = "A"""",
@@ -45,7 +38,7 @@ suite "Interface Tests":
 
     let typeLines = @[
       "type B = object",
-      "c: string",
+      "  c: string", # Have to add indents in manually for tests now
       "",
       "B"
     ]
@@ -58,6 +51,20 @@ suite "Interface Tests":
     ]
     require getResponse(inputStream, outputStream, varLines) == """(c: "C") == type B"""
 
+
+    let ifLines = @[
+      """if true:""",
+      """  echo "TRUE"""",
+      """else:""",
+      """  echo "FALSE"""",
+      """""",
+    ]
+    require getResponse(inputStream, outputStream, ifLines) == """TRUE"""
+
+    inputStream.writeLine("quit")
+    inputStream.flush()
+    assert outputStream.atEnd()
+    process.close()
 
   test "Test commands":
     # Test cd
@@ -82,6 +89,9 @@ suite "Interface Tests":
       """call "echo A"""",
     ]
     require getResponse(inputStream, outputStream, callLines) == "A"
+    inputStream.writeLine("quit")
+    inputStream.flush()
+    process.close()
 
   # Finally, delete our RCfile path
   if existsFile(testRcfilePath):
