@@ -5,6 +5,11 @@ import os, osproc, strformat, strutils, terminal,
        times, strformat, parsecfg
 import noise
 
+# Lists available builtin commands
+var commands*: seq[string] = @[]
+
+include inimpkg/commands
+
 type App = ref object
   nim: string
   srcFile: string
@@ -12,8 +17,11 @@ type App = ref object
   flags: string
   rcFile: string
   showColor: bool
+  showTypes: bool
   noAutoIndent: bool
   editor: string
+  prompt: string
+  withTools: bool
 
 var
   app: App
@@ -33,13 +41,29 @@ const
   ConfigDir = getConfigDir() / "inim"
   RcFilePath = ConfigDir / "inim.ini"
 
+proc getOrSetSectionKeyValue(dict: var Config, section, key,
+    default: string): string =
+  ## Get a value or set default for that key
+  ## This is for when users have older versions of the config where they may be missing keys
+  result = dict.getSectionValue(section, key)
+  if result == "":
+    #Option not present, we should set instead of erroring
+    dict.setSectionKey(section, key, default)
+    result = default
+
+proc loadRCFileConfig(path: string): Config =
+  # Perform any config migrations here
+  result = loadConfig(path)
+  result.writeConfig(path)
+
 proc createRcFile(path: string): Config =
   ## Create a new rc file with default sections populated
   result = newConfig()
   result.setSectionKey("History", "persistent", "True")
   result.setSectionKey("Style", "prompt", "nim> ")
   result.setSectionKey("Style", "showTypes", "True")
-  result.setSectionKey("Style", "showColor", "True")
+  result.setSectionKey("Style", "ShowColor", "True")
+  result.setSectionKey("Features", "withTools", "False")
   result.writeConfig(path)
 
 let
@@ -75,18 +99,20 @@ template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
   ## Sets the foreground color for any writes to stdout
   ## in body and resets afterwards
-  if config.getSectionValue("Style", "showColor") == "True":
+  if app.showColor:
     stdout.setForegroundColor(color, bright)
   body
 
-  if config.getSectionValue("Style", "showColor") == "True":
+  if app.showColor:
     stdout.resetAttributes()
   stdout.flushFile()
+
 
 proc getNimVersion*(): string =
   let (output, status) = execCmdEx(fmt"{app.nim} --version")
   doAssert status == 0, fmt"make sure {app.nim} is in PATH"
   result = output.splitLines()[0]
+
 
 proc getNimPath(): string =
   # TODO: use `which` PENDING https://github.com/nim-lang/Nim/issues/8311
@@ -105,7 +131,7 @@ proc welcomeScreen() =
     when defined(posix):
       stdout.write "👑 " # Crashes on Windows: Unknown IO Error [IOError]
     stdout.writeLine "INim ", NimblePkgVersion
-    if config.getSectionValue("Style", "showColor") == "True":
+    if app.showColor:
       stdout.setForegroundColor(fgCyan)
     stdout.write getNimVersion()
     stdout.write getNimPath()
@@ -117,6 +143,7 @@ proc cleanExit(exitCode = 0) =
   removeFile(bufferSource[0..^5]) # Temp binary, same filename without ".nim"
   removeFile(tmpHistory)
   removeDir(getTempDir() & "nimcache")
+  config.writeConfig(app.rcFile)
   when promptHistory:
     # Save our history
     discard noiser.historySave(historyFile)
@@ -220,7 +247,7 @@ proc showError(output: string) =
             echo ""
             """.unindent()
         else: # Posix: colorize type to yellow
-          if config.getSectionValue("Style", "showColor") == "True":
+          if app.showColor:
             fmt"""
             stdout.write $({currentExpression})
             stdout.write "\e[33m" # Yellow
@@ -257,7 +284,7 @@ proc showError(output: string) =
 proc getPromptSymbol(): Styler =
   var prompt = ""
   if indentLevel == 0:
-    prompt = config.getSectionValue("Style", "prompt")
+    prompt = app.prompt
     previouslyIndented = false
   else:
     prompt = ".... "
@@ -337,13 +364,26 @@ proc doRepl() =
     cleanExit()
   elif currentExpression in ["help", "help()"]:
     outputFg(fgCyan, true):
-      echo("""
+      var helpString = """
 iNim - Interactive Nim Shell - By AndreiRegiani
 
 Available Commands:
 Quit - exit, exit(), quit, quit(), ctrl+d
-Help - help, help()""")
+Help - help, help()"""
+      if app.withTools:
+        helpString.add("""ls(dir = .) - Print contents of dir
+cd(dir = ~/) - Change current directory
+pwd() - Print current directory
+call(cmd) - Execute command cmd in current shell
+""")
+      echo helpString
     return
+  elif currentExpression in commands:
+    if app.withTools:
+      if not currentExpression.endsWith("()"):
+        currentExpression.add("()")
+    else:
+      discard
 
   # Empty line: exit indent level, otherwise do nothing
   if currentExpression.strip() == "" or currentExpression.startsWith("else"):
@@ -392,8 +432,7 @@ Help - help, help()""")
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
-    let showTypes = config.getSectionValue("Style", "showTypes")
-    currentExpression = if showTypes == "True":
+    currentExpression = if app.showTypes:
         fmt"""echo $({currentExpression}) & " == " & "type " & $(type({currentExpression}))"""
       else:
         fmt"""echo $({currentExpression})"""
@@ -443,14 +482,15 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       flags: flags,
       rcFile: rcFilePath,
       showColor: showColor,
-      noAutoIndent: noAutoIndent
+      noAutoIndent: noAutoIndent,
+      withTools: false
   )
 
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
           rcFilePath: string = RcFilePath, showTypes: bool = false,
-          showColor: bool = true, noAutoIndent: bool = false
-          ) =
+          showColor: bool = true, noAutoIndent: bool = false,
+          withTools: bool = false) =
   ## inim interpreter
 
   initApp(nim, srcFile, showHeader)
@@ -461,27 +501,35 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
       not existsFile(rcFilePath) or createRcFile
   config = if shouldCreateRc: createRcFile(rcFilePath)
-           else: loadConfig(rcFilePath)
+           else: loadRCFileConfig(rcFilePath)
 
   if app.showHeader: welcomeScreen()
+
+  if withTools or config.getOrSetSectionKeyValue("Features", "withTools",
+      "False") == "True":
+    app.flags.add(" -d:withTools")
+    app.withTools = true
 
   assert not isNil config
   when promptHistory:
     # When prompt history is enabled, we want to load history
-    historyFile = if config.getSectionValue("History", "persistent") == "True":
+    historyFile = if config.getOrSetSectionKeyValue("History", "persistent",
+        "True") == "True":
                     ConfigDir / "history.nim"
                   else: tmpHistory
     discard noiser.historyLoad(historyFile)
 
-  if config.getSectionValue("Style", "FakeshowColor") == "True":
-    echo "Wtf?"
   # Force show types
-  if showTypes:
-    config.setSectionKey("Style", "showTypes", "True")
+  if showTypes or config.getOrSetSectionKeyValue("Style", "showTypes",
+      "True") == "True":
+    app.showTypes = true
+
+  app.prompt = config.getOrSetSectionKeyValue("Style", "prompt", "nim> ")
 
   # Force show color
-  if not showColor or defined(NoColor):
-    config.setSectionKey("Style", "showColor", "False")
+  if not showColor or defined(NoColor) or config.getOrSetSectionKeyValue(
+      "Style", "showColor", "True") == "False":
+    app.showColor = false
 
   if noAutoIndent:
     # Still trigger indents but do not actually output any spaces,
@@ -516,5 +564,6 @@ when isMainModule:
           "rcFilePath": "Change location of the inimrc file to use",
           "showTypes": "Show var types when printing var without echo",
           "showColor": "Color displayed text",
-          "noAutoIndent": "Disable automatic indentation"
+          "noAutoIndent": "Disable automatic indentation",
+          "withTools": "Load handy tools"
     })

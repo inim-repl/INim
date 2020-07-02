@@ -9,7 +9,7 @@ bin           = @["inim"]
 
 # Dependencies
 
-requires "nim >= 1.0.0"
+#requires "nim >= 1.0.0" # can we remove this to imply it should work with all versions?
 requires "cligen >= 1.0.0"
 requires "noise"
 
@@ -17,4 +17,5 @@ task test, "Run all tests":
   exec "mkdir -p bin"
   exec "nim c -d:NoColor -d:prompt_no_history --out:bin/inim src/inim.nim"
   exec "nim c -r -d:prompt_no_history tests/test.nim"
+  exec "nim c -r -d:withTools -d:prompt_no_history tests/test_commands.nim"
   exec "nim c -r -d:prompt_no_history tests/test_interface.nim"

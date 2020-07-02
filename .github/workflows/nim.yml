@@ -7,7 +7,27 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  build-devel:
+
+    runs-on: ubuntu-latest
+    env:
+      PATH: /usr/share/rust/.cargo/bin:/home/runner/.config/composer/vendor/bin:/home/runner/.dotnet/tools:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/runner/.nimble/bin
+    steps:
+    - name: debug
+      run: echo $PATH
+    - uses: actions/checkout@v2
+    - name: install curl
+      run: sudo apt update && sudo apt install curl -y
+    - name: setup choosenim
+      run: ./setupci.sh
+    - name: Update nimble
+      run: /home/runner/.nimble/bin/nimble update
+    - name: Build INim
+      run: /home/runner/.nimble/bin/nimble build
+    - name: Run tests
+      run: /home/runner/.nimble/bin/nimble test -d:prompt_no_history
+
+  build-latest:
 
     runs-on: ubuntu-latest
 

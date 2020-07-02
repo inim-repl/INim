@@ -3,7 +3,9 @@
 import osproc, streams, os
 import unittest
 
-let testRcfilePath = getCurrentDir() / "inim.ini"
+let
+  testRcfilePath = getCurrentDir() / "inim.ini"
+  testDirName = absolutePath("tests/test_dir")
 
 proc getResponse(inStream, outStream: var Stream, lines: seq[string] = @[]): string =
   ## Write all lines in `lines` to inStream and read the result
@@ -14,12 +16,12 @@ proc getResponse(inStream, outStream: var Stream, lines: seq[string] = @[]): str
 
 suite "Interface Tests":
 
-
-  test "Test Standard Syntax works":
+  setup:
+    # Start our process and create links to our stdin/stdout
     var process = startProcess(
       "bin/inim",
       workingDir = "",
-      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false"],
+      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false", "--withTools"],
       options = {poDaemon}
     )
 
@@ -27,6 +29,7 @@ suite "Interface Tests":
       inputStream = process.inputStream
       outputStream = process.outputStream
 
+  test "Test Standard Syntax works":
     let defLines = @[
       """let a = "A"""",
       "a"
@@ -40,7 +43,6 @@ suite "Interface Tests":
       "B"
     ]
     require getResponse(inputStream, outputStream, typeLines) == "B == type B"
-    # This could be improved
     require getResponse(inputStream, outputStream, @["B.c"]) == "string == type string"
 
     let varLines = @[
@@ -62,8 +64,35 @@ suite "Interface Tests":
     inputStream.writeLine("quit")
     inputStream.flush()
     assert outputStream.atEnd()
-
     process.close()
 
+  test "Test commands":
+    # Test cd
+    let chdirLines = @[
+      """cd "tests/test_dir"""",
+    ]
+    require getResponse(inputStream, outputStream, chdirLines) == testDirName & " == type string"
+
+    # Test ls
+    let lsLines = @[
+      """ls()""",
+    ]
+    require getResponse(inputStream, outputStream, lsLines) == """@["a1", "a2"] == type seq[string]"""
+
+    # Test pwd
+    let pwdLines = @[
+      """pwd()""",
+    ]
+    require getResponse(inputStream, outputStream, pwdLines) == testDirName & " == type string"
+
+    let callLines = @[
+      """call "echo A"""",
+    ]
+    require getResponse(inputStream, outputStream, callLines) == "A"
+    inputStream.writeLine("quit")
+    inputStream.flush()
+    process.close()
+
+  # Finally, delete our RCfile path
   if existsFile(testRcfilePath):
     removeFile(testRcfilePath)

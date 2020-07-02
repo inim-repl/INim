@@ -14,6 +14,7 @@
 * Preload existing source code (access to non-exported* symbols): `inim -s example.nim`
 * Optional Colorized output
 * Edit lines using $EDITOR (Ctrl-X)
+* Built in tools like ipython (cd(), ls(), pwd(), call()) enabled with --withTools
 
 ## Config
 Config is saved and loaded from `configDir / inim`.
@@ -27,6 +28,8 @@ Currently, the config allows you to set two options:
   * `showColor`: Output results with pretty colors
 * History
   * persistent history (default: true)
+* Features
+  * `withTools`: Enable built in tools
 
 ## Contributing
 Pull requests and suggestions are welcome.
