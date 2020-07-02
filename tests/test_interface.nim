@@ -1,6 +1,6 @@
 ## TODO: Split these up
 ## Maybe see if I can store a base state of the process before each tests runs and roll back after
-import osproc, streams, os, sequtils
+import osproc, streams, os
 import unittest
 
 let
