@@ -470,7 +470,7 @@ call(cmd) - Execute command cmd in current shell
     else:
       # Show any errors in echoing the statement
       indentLevel = 0
-      if showTypes == "True":
+      if app.showTypes:
         # If we show types and this has errored again,
         # reraise the original error message
         showError(output, reraised = true)

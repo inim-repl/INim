@@ -1,6 +1,6 @@
 ## TODO: Split these up
 ## Maybe see if I can store a base state of the process before each tests runs and roll back after
-import osproc, streams, os
+import osproc, streams, os, sequtils
 import unittest
 
 let
@@ -21,20 +21,14 @@ suite "Interface Tests":
     var process = startProcess(
       "bin/inim",
       workingDir = "",
-      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false", "--withTools"],
+      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false",
+          "--withTools"],
       options = {poDaemon}
     )
 
     var
       inputStream = process.inputStream
       outputStream = process.outputStream
-
-  teardown:
-    # Clean up after the process quits
-    inputStream.writeLine("quit")
-    inputStream.flush()
-    process.close()
-
 
   test "Test Standard Syntax works":
     let defLines = @[
@@ -62,11 +56,15 @@ suite "Interface Tests":
     let jankLines = @[
       """proc adderNoReturnNoType(a: float, b: float) = a + b""",
     ]
-    require getResponse(inputStream, outputStream, jankLines) == """Error: expression 'a + b' is of type 'float' and has to be discarded"""
+    require getResponse(inputStream, outputStream, jankLines) in @[
+      """Error: expression 'a + b' is of type 'float' and has to be used (or discarded)""",
+      """Error: expression 'a + b' is of type 'float' and has to be discarded"""
+    ]
 
     inputStream.writeLine("quit")
     inputStream.flush()
     assert outputStream.atEnd()
+    process.close()
 
   test "Test commands":
     # Test cd
@@ -91,6 +89,9 @@ suite "Interface Tests":
       """call "echo A"""",
     ]
     require getResponse(inputStream, outputStream, callLines) == "A"
+    inputStream.writeLine("quit")
+    inputStream.flush()
+    process.close()
 
   # Finally, delete our RCfile path
   if existsFile(testRcfilePath):
