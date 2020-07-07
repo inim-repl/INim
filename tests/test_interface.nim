@@ -56,16 +56,14 @@ suite "Interface Tests":
     let jankLines = @[
       """proc adderNoReturnNoType(a: float, b: float) = a + b""",
     ]
+
+    # Check for both responses to work with stable vs devel of nim
     require getResponse(inputStream, outputStream, jankLines) in @[
       """Error: expression 'a + b' is of type 'float' and has to be used (or discarded)""",
       """Error: expression 'a + b' is of type 'float' and has to be discarded"""
     ]
 
-    inputStream.writeLine("quit")
-    inputStream.flush()
-    assert outputStream.atEnd()
-    process.close()
-
+    # Check indentation
     let ifLines = @[
       """if true:""",
       """  echo "TRUE"""",
