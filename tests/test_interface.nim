@@ -39,7 +39,7 @@ suite "Interface Tests":
 
     let typeLines = @[
       "type B = object",
-      "c: string",
+      "  c: string", # Have to add indents in manually for tests now
       "",
       "B"
     ]
@@ -60,6 +60,20 @@ suite "Interface Tests":
       """Error: expression 'a + b' is of type 'float' and has to be used (or discarded)""",
       """Error: expression 'a + b' is of type 'float' and has to be discarded"""
     ]
+
+    inputStream.writeLine("quit")
+    inputStream.flush()
+    assert outputStream.atEnd()
+    process.close()
+
+    let ifLines = @[
+      """if true:""",
+      """  echo "TRUE"""",
+      """else:""",
+      """  echo "FALSE"""",
+      """""",
+    ]
+    require getResponse(inputStream, outputStream, ifLines) == """TRUE"""
 
     inputStream.writeLine("quit")
     inputStream.flush()
