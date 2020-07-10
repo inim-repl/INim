@@ -36,6 +36,8 @@ suite "Interface Tests":
       "a"
     ]
     require getResponse(inputStream, outputStream, defLines) == "A == type string"
+    stderr.writeLine("Checked Def Lines")
+    stderr.flushFile()
 
     let typeLines = @[
       "type B = object",
@@ -45,12 +47,16 @@ suite "Interface Tests":
     ]
     require getResponse(inputStream, outputStream, typeLines) == "B == type B"
     require getResponse(inputStream, outputStream, @["B.c"]) == "string == type string"
+    stderr.writeLine("Checked Type Lines")
+    stderr.flushFile()
 
     let varLines = @[
       """var g = B(c: "C")""",
       "g"
     ]
     require getResponse(inputStream, outputStream, varLines) == """(c: "C") == type B"""
+    stderr.writeLine("Checked Var Lines")
+    stderr.flushFile()
 
     # Make sure we're not creating more errors when we type in code that wouldn't compile normally
     let jankLines = @[
@@ -62,6 +68,8 @@ suite "Interface Tests":
       """Error: expression 'a + b' is of type 'float' and has to be used (or discarded)""",
       """Error: expression 'a + b' is of type 'float' and has to be discarded"""
     ]
+    stderr.writeLine("Checked Jank Lines")
+    stderr.flushFile()
 
     # Check indentation
     let ifLines = @[
@@ -72,6 +80,8 @@ suite "Interface Tests":
       """""",
     ]
     require getResponse(inputStream, outputStream, ifLines) == """TRUE"""
+    stderr.writeLine("Checked If Lines")
+    stderr.flushFile()
 
     inputStream.writeLine("quit")
     inputStream.flush()
