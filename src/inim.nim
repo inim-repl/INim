@@ -490,13 +490,11 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
 
 proc runCodeAndExit() =
   ## When we're reading from piped data, we just want to execute the code
-  ## and echo the
-  # First up, make sure our buffer file is created
-  bufferRestoreValidCode()
+  ## and echo the output
 
   let codeToRun = stdin.readAll()
   if "import" in codeToRun:
-    # If we have imports in our code to run, we need to split them up and import them first
+    # If we have imports in our code to run, we need to split them up and place them outside our block
     let imports = codeToRun.split({';', '\r', '\n'}).filter(proc (
         code: string): bool =
       code.find("import") != -1 and code.strip() != ""
@@ -511,6 +509,7 @@ echo tmpVal
     ).join(";")]
     buffer.write(strToWrite)
   else:
+    # If we have no imports, we should just run our code
     buffer.write("""let tmpVal = block:
   $#
 echo tmpVal
@@ -526,7 +525,6 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
           showColor: bool = true, noAutoIndent: bool = false,
           withTools: bool = false) =
   ## inim interpreter
-
 
   initApp(nim, srcFile, showHeader)
   if flags.len > 0:
@@ -574,11 +572,6 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
 
   app.editor = getEnv("EDITOR")
 
-  when not defined(NOTTYCHECK):
-    if not isatty(stdin):
-      runCodeAndExit()
-      cleanExit()
-
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)
     doAssert(srcFile.splitFile.ext == ".nim")
@@ -586,6 +579,11 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     init(fileData) # Preload code into init
   else:
     init() # Clean init
+
+  when not defined(NOTTYCHECK):
+    if not isatty(stdin):
+      runCodeAndExit()
+      cleanExit()
 
   while true:
     let prompt = getPromptSymbol()
