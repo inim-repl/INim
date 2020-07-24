@@ -15,6 +15,7 @@
 * Optional Colorized output
 * Edit lines using $EDITOR (Ctrl-X)
 * Built in tools like ipython (cd(), ls(), pwd(), call()) enabled with --withTools
+* When piped a file or some code, INim will execute that code and exit
 
 ## Config
 Config is saved and loaded from `configDir / inim`.

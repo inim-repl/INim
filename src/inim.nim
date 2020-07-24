@@ -1,7 +1,7 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
 
-import os, osproc, strformat, strutils, terminal,
+import os, osproc, strformat, strutils, terminal, sequtils,
        times, strformat, parsecfg
 import noise
 
@@ -238,7 +238,7 @@ proc showError(output: string) =
     message[message.rfind("'")] = ';' # last single-quote
     let message_seq = message.split(";") # expression;type, e.g 'a';char
     let typeExpression = message_seq[1] # type, e.g. char
-    # Ignore this colour change
+                                        # Ignore this colour change
     let shortcut = when defined(Windows):
             fmt"""
             stdout.write $({currentExpression})
@@ -344,7 +344,8 @@ proc doRepl() =
         vc.write(validCode)
         vc.close()
         # Spawn our editor as a process
-        var pid = startProcess(app.editor, args = @[validCodeSource], options = {poParentStreams, poUsePath})
+        var pid = startProcess(app.editor, args = @[validCodeSource],
+            options = {poParentStreams, poUsePath})
         # Wait for the user to finish editing
         discard pid.waitForExit()
         pid.close()
@@ -428,7 +429,8 @@ call(cmd) - Execute command cmd in current shell
       # Roll back echoes
       bufferRestoreValidCode()
   # Maybe trying to echo value?
-  elif "has to be used" in output or "has to be discarded" in output and indentLevel == 0: #
+  elif "has to be used" in output or "has to be discarded" in output and
+      indentLevel == 0: #
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
@@ -486,12 +488,45 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       withTools: false
   )
 
+proc runCodeAndExit() =
+  ## When we're reading from piped data, we just want to execute the code
+  ## and echo the
+  # First up, make sure our buffer file is created
+  bufferRestoreValidCode()
+
+  let codeToRun = stdin.readAll()
+  if "import" in codeToRun:
+    # If we have imports in our code to run, we need to split them up and import them first
+    let imports = codeToRun.split({';', '\r', '\n'}).filter(proc (
+        code: string): bool =
+      code.find("import") != -1 and code.strip() != ""
+    ).join(";")
+    let strToWrite = """$#
+let tmpVal = block:
+  $#
+echo tmpVal
+  """ % [imports, codeToRun.split({';', '\r', '\n'}).filter(proc (
+        code: string): bool =
+      code.find("import") == -1 and code.strip() != ""
+    ).join(";")]
+    buffer.write(strToWrite)
+  else:
+    buffer.write("""let tmpVal = block:
+  $#
+echo tmpVal
+  """ % codeToRun
+    )
+  buffer.flushFile
+  let (echo_output, echo_status) = compileCode()
+  echo echo_output.strip()
+
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
           rcFilePath: string = RcFilePath, showTypes: bool = false,
           showColor: bool = true, noAutoIndent: bool = false,
           withTools: bool = false) =
   ## inim interpreter
+
 
   initApp(nim, srcFile, showHeader)
   if flags.len > 0:
@@ -503,7 +538,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   config = if shouldCreateRc: createRcFile(rcFilePath)
            else: loadRCFileConfig(rcFilePath)
 
-  if app.showHeader: welcomeScreen()
+  if app.showHeader and isatty(stdin): welcomeScreen()
 
   if withTools or config.getOrSetSectionKeyValue("Features", "withTools",
       "False") == "True":
@@ -538,6 +573,11 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     sessionNoAutoIndent = noAutoIndent
 
   app.editor = getEnv("EDITOR")
+
+  when not defined(NOTTYCHECK):
+    if not isatty(stdin):
+      runCodeAndExit()
+      cleanExit()
 
   if srcFile.len > 0:
     doAssert(srcFile.fileExists, "cannot access " & srcFile)

@@ -1,12 +1,12 @@
-import unittest
+import unittest, osproc, strutils
 
 import inim
 
 suite "INim Test Suite":
-  
+
   setup:
     initApp("nim", "", true)
-  
+
   teardown:
     discard
 
@@ -30,3 +30,10 @@ suite "INim Test Suite":
       hasIndentTrigger("type") == true
       hasIndentTrigger("CallbackAction* = enum ") == true
       hasIndentTrigger("Response* = ref object ") == true
+
+  test "Executes piped code from file":
+    check execCmdEx("cat tests/test_piping_file.nim | bin/inim").output.strip() == """4
+@[1, 5, 4]"""
+
+  test "Executes piped code from echo":
+    check execCmdEx("echo \"2+2\" | bin/inim").output.strip() == "4"
