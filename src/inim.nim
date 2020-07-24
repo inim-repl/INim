@@ -77,7 +77,7 @@ proc compileCode(): auto =
   # remove redundant `--hint[source]=off`
   let compileCmd = [
       app.nim, "compile", "--run", "--verbosity=0", app.flags,
-      "--hints=off", "--hint[source]=off", "--path=./", bufferSource
+      "--hints=off", "--path=./", bufferSource
   ].join(" ")
   result = execCmdEx(compileCmd)
 
