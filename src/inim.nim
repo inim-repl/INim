@@ -4,6 +4,7 @@
 import os, osproc, strformat, strutils, terminal, sequtils,
        times, strformat, parsecfg
 import noise
+from sequtils import filterIt
 
 # Lists available builtin commands
 var commands*: seq[string] = @[]
@@ -186,7 +187,7 @@ proc bufferRestoreValidCode() =
   buffer.write(validCode)
   buffer.flushFile()
 
-proc showError(output: string) =
+proc showError(output: string, reraised: bool = false) =
   # Determine whether last expression was to import a module
   var importStatement = false
   try:
@@ -195,11 +196,20 @@ proc showError(output: string) =
   except IndexError:
     discard
 
+  #### Reraised errors. These get reraised if the statement being echoed with a type fails
+  if reraised:
+    outputFg(fgRed, true):
+      if output.contains("Error"):
+        echo output[output.find("Error") .. ^2]
+      else:
+        echo output
+    return
+
   #### Runtime errors:
   if output.contains("Error: unhandled exception:"):
     outputFg(fgRed, true):
       # Display only the relevant lines of the stack trace
-      let lines = output.splitLines()
+      var lines = output.splitLines().filterIt(not it.isEmptyOrWhitespace)
 
       if not importStatement:
         echo lines[^3]
@@ -459,7 +469,12 @@ call(cmd) - Execute command cmd in current shell
     else:
       # Show any errors in echoing the statement
       indentLevel = 0
-      showError(echo_output)
+      if app.showTypes:
+        # If we show types and this has errored again,
+        # reraise the original error message
+        showError(output, reraised = true)
+      else:
+        showError(echo_output)
       # Roll back to not include the temporary echo line
       bufferRestoreValidCode()
 

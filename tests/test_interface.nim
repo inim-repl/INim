@@ -21,7 +21,8 @@ suite "Interface Tests":
     var process = startProcess(
       "bin/inim",
       workingDir = "",
-      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false", "--withTools"],
+      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false",
+          "--withTools"],
       options = {poDaemon}
     )
 
@@ -51,7 +52,18 @@ suite "Interface Tests":
     ]
     require getResponse(inputStream, outputStream, varLines) == """(c: "C") == type B"""
 
+    # Make sure we're not creating more errors when we type in code that wouldn't compile normally
+    let jankLines = @[
+      """proc adderNoReturnNoType(a: float, b: float) = a + b""",
+    ]
 
+    # Check for both responses to work with stable vs devel of nim
+    require getResponse(inputStream, outputStream, jankLines) in @[
+      """Error: expression 'a + b' is of type 'float' and has to be used (or discarded)""",
+      """Error: expression 'a + b' is of type 'float' and has to be discarded"""
+    ]
+
+    # Check indentation
     let ifLines = @[
       """if true:""",
       """  echo "TRUE"""",
