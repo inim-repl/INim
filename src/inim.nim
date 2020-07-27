@@ -1,7 +1,7 @@
 # MIT License
 # Copyright (c) 2018 Andrei Regiani
 
-import os, osproc, strformat, strutils, terminal,
+import os, osproc, strformat, strutils, terminal, sequtils,
        times, strformat, parsecfg
 import noise
 
@@ -77,7 +77,7 @@ proc compileCode(): auto =
   # remove redundant `--hint[source]=off`
   let compileCmd = [
       app.nim, "compile", "--run", "--verbosity=0", app.flags,
-      "--hints=off", "--hint[source]=off", "--path=./", bufferSource
+      "--hints=off", "--path=./", bufferSource
   ].join(" ")
   result = execCmdEx(compileCmd)
 
@@ -238,7 +238,7 @@ proc showError(output: string) =
     message[message.rfind("'")] = ';' # last single-quote
     let message_seq = message.split(";") # expression;type, e.g 'a';char
     let typeExpression = message_seq[1] # type, e.g. char
-    # Ignore this colour change
+                                        # Ignore this colour change
     let shortcut = when defined(Windows):
             fmt"""
             stdout.write $({currentExpression})
@@ -344,7 +344,8 @@ proc doRepl() =
         vc.write(validCode)
         vc.close()
         # Spawn our editor as a process
-        var pid = startProcess(app.editor, args = @[validCodeSource], options = {poParentStreams, poUsePath})
+        var pid = startProcess(app.editor, args = @[validCodeSource],
+            options = {poParentStreams, poUsePath})
         # Wait for the user to finish editing
         discard pid.waitForExit()
         pid.close()
@@ -428,7 +429,8 @@ call(cmd) - Execute command cmd in current shell
       # Roll back echoes
       bufferRestoreValidCode()
   # Maybe trying to echo value?
-  elif "has to be used" in output or "has to be discarded" in output and indentLevel == 0: #
+  elif "has to be used" in output or "has to be discarded" in output and
+      indentLevel == 0: #
     bufferRestoreValidCode()
 
     # Save the current expression as an echo
@@ -486,6 +488,37 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       withTools: false
   )
 
+proc runCodeAndExit() =
+  ## When we're reading from piped data, we just want to execute the code
+  ## and echo the output
+
+  let codeToRun = stdin.readAll()
+  if "import" in codeToRun:
+    # If we have imports in our code to run, we need to split them up and place them outside our block
+    let imports = codeToRun.split({';', '\r', '\n'}).filter(proc (
+        code: string): bool =
+      code.find("import") != -1 and code.strip() != ""
+    ).join(";")
+    let strToWrite = """$#
+let tmpVal = block:
+  $#
+echo tmpVal
+  """ % [imports, codeToRun.split({';', '\r', '\n'}).filter(proc (
+        code: string): bool =
+      code.find("import") == -1 and code.strip() != ""
+    ).join(";")]
+    buffer.write(strToWrite)
+  else:
+    # If we have no imports, we should just run our code
+    buffer.write("""let tmpVal = block:
+  $#
+echo tmpVal
+  """ % codeToRun
+    )
+  buffer.flushFile
+  let (echo_output, echo_status) = compileCode()
+  echo echo_output.strip()
+
 proc main(nim = "nim", srcFile = "", showHeader = true,
           flags: seq[string] = @[], createRcFile = false,
           rcFilePath: string = RcFilePath, showTypes: bool = false,
@@ -503,7 +536,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   config = if shouldCreateRc: createRcFile(rcFilePath)
            else: loadRCFileConfig(rcFilePath)
 
-  if app.showHeader: welcomeScreen()
+  if app.showHeader and isatty(stdin): welcomeScreen()
 
   if withTools or config.getOrSetSectionKeyValue("Features", "withTools",
       "False") == "True":
@@ -546,6 +579,11 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
     init(fileData) # Preload code into init
   else:
     init() # Clean init
+
+  when not defined(NOTTYCHECK):
+    if not isatty(stdin):
+      runCodeAndExit()
+      cleanExit()
 
   while true:
     let prompt = getPromptSymbol()
