@@ -37,3 +37,7 @@ suite "INim Test Suite":
 
   test "Executes piped code from echo":
     check execCmdEx("echo \"2+2\" | bin/inim").output.strip() == "4"
+
+  test "Executes piped code with echo at end of block":
+    check execCmdEx("cat tests/test_piping_with_end_echo.nim | bin/inim").output.strip() == """TestVar"""
+

@@ -503,25 +503,34 @@ proc initApp*(nim, srcFile: string, showHeader: bool, flags = "",
       withTools: false
   )
 
+
 proc runCodeAndExit() =
   ## When we're reading from piped data, we just want to execute the code
   ## and echo the output
 
-  let codeToRun = stdin.readAll()
-  if "import" in codeToRun:
+  let codeToRun = stdin.readAll().strip()
+  let codeEndsInEcho = codeToRun.split({';', '\r', '\n'})[^1].startsWith("echo")
+
+  if codeEndsInEcho:
+    # If the code ends in an echo, just
+    buffer.write(codeToRun)
+  elif "import" in codeToRun:
     # If we have imports in our code to run, we need to split them up and place them outside our block
-    let imports = codeToRun.split({';', '\r', '\n'}).filter(proc (
+    let
+      importLines = codeToRun.split({';', '\r', '\n'}).filter(proc (
         code: string): bool =
-      code.find("import") != -1 and code.strip() != ""
-    ).join(";")
+        code.find("import") != -1 and code.strip() != ""
+      ).join(";")
+      nonImportLines = codeToRun.split({';', '\r', '\n'}).filter(proc (
+        code: string): bool =
+        code.find("import") == -1 and code.strip() != ""
+      ).join(";")
+
     let strToWrite = """$#
 let tmpVal = block:
   $#
 echo tmpVal
-  """ % [imports, codeToRun.split({';', '\r', '\n'}).filter(proc (
-        code: string): bool =
-      code.find("import") == -1 and code.strip() != ""
-    ).join(";")]
+  """ % [importLines, nonImportLines]
     buffer.write(strToWrite)
   else:
     # If we have no imports, we should just run our code
