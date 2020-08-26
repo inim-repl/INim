@@ -509,7 +509,7 @@ proc runCodeAndExit() =
   ## and echo the output
 
   let codeToRun = stdin.readAll().strip()
-  let codeEndsInEcho = codeToRun.split({';', '\r', '\n'})[^1].startsWith("echo")
+  let codeEndsInEcho = codeToRun.split({';', '\r', '\n'})[^1].strip().startsWith("echo")
 
   if codeEndsInEcho:
     # If the code ends in an echo, just
@@ -551,6 +551,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   ## inim interpreter
 
   initApp(nim, srcFile, showHeader)
+
   if flags.len > 0:
     app.flags = " -d:" & join(@flags, " -d:")
 
