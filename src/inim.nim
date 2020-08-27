@@ -2,7 +2,7 @@
 # Copyright (c) 2018 Andrei Regiani
 
 import os, osproc, strformat, strutils, terminal, sequtils,
-       times, strformat, parsecfg
+       times, strformat, parsecfg, sugar
 import noise
 from sequtils import filterIt
 
@@ -553,7 +553,13 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
   initApp(nim, srcFile, showHeader)
 
   if flags.len > 0:
-    app.flags = " -d:" & join(@flags, " -d:")
+    app.flags = flags.map(f => (
+        block:
+          if f.startsWith("--"):
+            return f
+          return fmt"-d:{f}"
+      )
+    ).join(" ")
 
   discard existsorCreateDir(getConfigDir())
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
