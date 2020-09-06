@@ -41,3 +41,6 @@ suite "INim Test Suite":
   test "Executes piped code with echo at end of block":
     check execCmdEx("cat tests/test_piping_with_end_echo.nim | bin/inim").output.strip() == """TestVar"""
 
+  test "Verify flags with '--' prefix work":
+    check execCmdEx("""echo 'import threadpool; echo "SUCCESS"' | bin/inim --flag=--threads:on""").output.strip() == "SUCCESS"
+

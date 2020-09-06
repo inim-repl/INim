@@ -16,6 +16,8 @@
 * Edit lines using $EDITOR (Ctrl-X)
 * Built in tools like ipython (cd(), ls(), pwd(), call()) enabled with --withTools
 * When piped a file or some code, INim will execute that code and exit
+* Extra compiler options can be specified by adding them as arguments inim with the -d flag (ie `inim -d:ssl -d:DEBUG`)
+* Flags can turned on with `-d` by adding a `--` prefix to arguments (ie -d:--threads:on)
 
 ## Config
 Config is saved and loaded from `configDir / inim`.
