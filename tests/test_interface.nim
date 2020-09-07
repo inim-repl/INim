@@ -108,3 +108,26 @@ suite "Interface Tests":
   # Finally, delete our RCfile path
   if existsFile(testRcfilePath):
     removeFile(testRcfilePath)
+
+suite "Argument Tests":
+
+  test "Test srcFile runtime output echoes to stdout":
+    # Start our process and create links to our stdin/stdout
+    var process = startProcess(
+      "bin/inim",
+      workingDir = "",
+      args = @["--rcFilePath=" & testRcfilePath, "--showHeader=false",
+               "--withTools", "-s=tests/test_error_output.nim"],
+      options = {poDaemon}
+    )
+
+    var
+      inputStream = process.inputStream
+      outputStream = process.outputStream
+
+    # Quit straight away, but check that the runtime output of the file is
+    # printed to stdout
+    let defLines = @[
+      "quit"
+    ]
+    let resp = getResponse(inputStream, outputStream, defLines) == """@["a", "b", "c"]"""
