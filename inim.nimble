@@ -11,7 +11,8 @@ bin           = @["inim"]
 
 #requires "nim >= 1.0.0" # can we remove this to imply it should work with all versions?
 requires "cligen >= 1.0.0"
-requires "noise"
+
+requires "noise >= 0.1.4"
 
 task test, "Run all tests":
   exec "mkdir -p bin"
