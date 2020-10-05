@@ -204,14 +204,17 @@ proc showError(output: string, reraised: bool = false) =
 
   #### Runtime errors:
   if output.contains("Error: unhandled exception:"):
+    var lines = output.splitLines().filterIt(not it.isEmptyOrWhitespace)
+    # Print out any runtime echo messages before printing the error
+    for runtimeEchoLine in lines[0 ..< lines.len - 5]:
+      echo runtimeEchoLine
     outputFg(fgRed, true):
       # Display only the relevant lines of the stack trace
-      var lines = output.splitLines().filterIt(not it.isEmptyOrWhitespace)
 
       if not importStatement:
-        echo lines[^3]
+         echo lines[^3]
       else:
-        for line in lines[len(lines)-5 .. len(lines)-3]:
+        for line in lines[len(lines) - 5 ..< len(lines) - 1]:
           echo line
     return
 
@@ -224,13 +227,14 @@ proc showError(output: string, reraised: bool = false) =
 
   # Discard shortcut conditions
   let
-    a = currentExpression != ""
-    b = importStatement == false
-    c = previouslyIndented == false
-    d = message.contains("and has to be")
+    hasCurrentExpression = currentExpression != ""
+    noImportStatement = importStatement == false
+    notPreviousIndented = previouslyIndented == false
+    isHasToBe = message.contains("and has to be")
+    isDiscardShortcut = hasCurrentExpression and noImportStatement and notPreviousIndented and isHasToBe
 
   # Discarded shortcut, print values: nim> myvar
-  if a and b and c and d:
+  if isDiscardShortcut:
     # Following lines grabs the type from the discarded expression:
     # Remove text bloat to result into: e.g. foo'int
     message = message.multiReplace({
@@ -321,7 +325,6 @@ proc init(preload = "") =
     # instead of one-liners error
     currentExpression = "import " # Pretend it was an import for showError()
     showError(output)
-    cleanExit(1)
 
 proc hasIndentTrigger*(line: string): bool =
   if line.len == 0:
