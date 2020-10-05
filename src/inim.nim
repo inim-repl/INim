@@ -190,11 +190,8 @@ proc bufferRestoreValidCode() =
 proc showError(output: string, reraised: bool = false) =
   # Determine whether last expression was to import a module
   var importStatement = false
-  try:
-    if currentExpression[0..6] == "import ":
-      importStatement = true
-  except IndexError:
-    discard
+  if currentExpression.len > 7 and currentExpression[0..6] == "import ":
+    importStatement = true
 
   #### Reraised errors. These get reraised if the statement being echoed with a type fails
   if reraised:
@@ -563,7 +560,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
 
   discard existsorCreateDir(getConfigDir())
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
-      not existsFile(rcFilePath) or createRcFile
+      not fileExists(rcFilePath) or createRcFile
   config = if shouldCreateRc: createRcFile(rcFilePath)
            else: loadRCFileConfig(rcFilePath)
 

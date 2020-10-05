@@ -10,7 +10,7 @@ bin           = @["inim"]
 # Dependencies
 
 #requires "nim >= 1.0.0" # can we remove this to imply it should work with all versions?
-requires "cligen >= 1.0.0"
+requires "cligen >= 1.2.0"
 
 requires "noise >= 0.1.4"
 
