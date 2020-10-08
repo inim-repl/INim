@@ -1,6 +1,6 @@
 import os, strutils
 import unittest
-import ../src/inimpkg/commands
+import ../inimpkg/commands
 
 let
   testDirName = absolutePath("tests/test_dir")
