@@ -4,7 +4,9 @@ version       = "0.6.1"
 author        = "Andrei Regiani"
 description   = "Interactive Nim Shell / REPL / Playground"
 license       = "MIT"
+installDirs   = @["."]
 srcDir        = "src"
+installExt    = @["nim"]
 bin           = @["inim"]
 
 # Dependencies
