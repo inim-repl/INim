@@ -69,9 +69,9 @@ proc createRcFile(path: string): Config =
 
 let
   uniquePrefix = epochTime().int
-  bufferSource = getTempDir() & "inim_" & $uniquePrefix & ".nim"
-  validCodeSource = getTempDir() & "inimvc_" & $uniquePrefix & ".nim"
-  tmpHistory = getTempDir() & "inim_history_" & $uniquePrefix & ".nim"
+  bufferSource = getTempDir() / "inim_" & $uniquePrefix & ".nim"
+  validCodeSource = getTempDir() / "inimvc_" & $uniquePrefix & ".nim"
+  tmpHistory = getTempDir() / "inim_history_" & $uniquePrefix & ".nim"
 
 proc compileCode(): auto =
   # PENDING https://github.com/nim-lang/Nim/issues/8312,
@@ -143,7 +143,7 @@ proc cleanExit(exitCode = 0) =
   removeFile(bufferSource) # Temp .nim
   removeFile(bufferSource[0..^5]) # Temp binary, same filename without ".nim"
   removeFile(tmpHistory)
-  removeDir(getTempDir() & "nimcache")
+  removeDir(getTempDir() / "nimcache")
   config.writeConfig(app.rcFile)
   when promptHistory:
     # Save our history
