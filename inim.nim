@@ -39,6 +39,8 @@ const
   ]
   # preloaded code into user's session
   EmbeddedCode = staticRead("inimpkg/embedded.nim")
+
+let
   ConfigDir = getConfigDir() / "inim"
   RcFilePath = ConfigDir / "inim.ini"
 
@@ -561,7 +563,7 @@ proc main(nim = "nim", srcFile = "", showHeader = true,
       )
     ).join(" ")
 
-  discard existsorCreateDir(getConfigDir())
+  discard existsorCreateDir(ConfigDir)
   let shouldCreateRc = not existsorCreateDir(rcFilePath.splitPath.head) or
       not fileExists(rcFilePath) or createRcFile
   config = if shouldCreateRc: createRcFile(rcFilePath)
