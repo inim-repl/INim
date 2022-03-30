@@ -1,7 +1,7 @@
 # Package
 
 skipDirs      = @["tests"]
-version       = "0.6.1"
+version       = "0.6.2"
 author        = "Andrei Regiani"
 description   = "Interactive Nim Shell / REPL / Playground"
 license       = "MIT"
