@@ -30,6 +30,7 @@ suite "INim Test Suite":
       hasIndentTrigger("type") == true
       hasIndentTrigger("CallbackAction* = enum ") == true
       hasIndentTrigger("Response* = ref object ") == true
+      hasIndentTrigger("var s = \"\"\"") == true
 
   test "Executes piped code from file":
     check execCmdEx("cat tests/test_piping_file.nim | bin/inim").output.strip() == """4
@@ -43,4 +44,3 @@ suite "INim Test Suite":
 
   test "Verify flags with '--' prefix work":
     check execCmdEx("""echo 'import threadpool; echo "SUCCESS"' | bin/inim --flag=--threads:on""").output.strip() == "SUCCESS"
-

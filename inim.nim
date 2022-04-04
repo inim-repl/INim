@@ -31,7 +31,7 @@ var
 
 const
   NimblePkgVersion {.strdefine.} = ""
-  # endsWith
+  TripleQuoteTrigger = "\"\"\""
   IndentTriggers = [
       ",", "=", ":",
       "var", "let", "const", "type", "import",
@@ -97,6 +97,7 @@ var
   buffer: File
   noiser = Noise.init()
   historyFile: string
+  previously_triple_quoted: bool
 
 template outputFg(color: ForegroundColor, bright: bool = false,
     body: untyped): untyped =
@@ -332,7 +333,15 @@ proc hasIndentTrigger*(line: string): bool =
   if line.len == 0:
     return
   for trigger in IndentTriggers:
-    if line.strip().endsWith(trigger):
+    let clean_line = line.strip()
+    # Triple quoted triggers need to not increase the indent further
+    if clean_line.contains(TripleQuoteTrigger):
+      # Do not indent further
+      if previously_triple_quoted:
+        return
+      previously_triple_quoted = true
+      return true
+    elif clean_line.endsWith(trigger):
       result = true
 
 proc doRepl() =
@@ -399,7 +408,9 @@ call(cmd) - Execute command cmd in current shell
       discard
 
   # Empty line: exit indent level, otherwise do nothing
-  if currentExpression.strip() == "" or currentExpression.startsWith("else"):
+  if currentExpression.strip() == "" or currentExpression.startsWith("else") or (previously_triple_quoted and currentExpression.strip() == TripleQuoteTrigger):
+    if currentExpression.strip() == TripleQuoteTrigger:
+      previously_triple_quoted = false
     if indentLevel > 0:
       indentLevel -= 1
     elif indentLevel == 0:
