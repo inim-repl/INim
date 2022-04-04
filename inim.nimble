@@ -11,7 +11,7 @@ bin           = @["inim"]
 
 # Dependencies
 
-requires "cligen >= 1.5.22"
+requires "cligen >= 1.5.23"
 
 requires "noise >= 0.1.4"
 
