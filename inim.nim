@@ -183,7 +183,9 @@ proc bufferRestoreValidCode() =
   if buffer != nil:
     buffer.close()
   buffer = open(bufferSource, fmWrite)
-  buffer.writeLine(EmbeddedCode)
+  buffer.write(EmbeddedCode)
+  if not EmbeddedCode.endsWith("\n"):
+    buffer.write("\n")
   buffer.write(validCode)
   buffer.flushFile()
 
