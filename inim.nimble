@@ -13,7 +13,7 @@ bin           = @["inim"]
 
 requires "cligen >= 1.5.22"
 
-requires "noise >= 0.1.4"
+requires "noise >= 0.1.10"
 
 task test, "Run all tests":
   exec "mkdir -p bin"
