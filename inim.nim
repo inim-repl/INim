@@ -31,7 +31,7 @@ const
   NimblePkgVersion {.strdefine.} = ""
   # endsWith
   IndentTriggers = [
-      ",", "=", ":",
+      ",", "=", ":", "\"\"\"",
       "var", "let", "const", "type", "import",
       "object", "RootObj", "enum"
   ]
